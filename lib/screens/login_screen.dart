@@ -16,6 +16,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
+  /// Google Sign-In only works on Android, iOS, and Web.
+  bool get _isSupportedPlatform =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      kIsWeb;
+
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     final auth = context.read<AuthService>();
@@ -91,7 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Masuk dengan Google untuk menyimpan data anggaran di Google Drive Anda',
+                        _isSupportedPlatform
+                            ? 'Masuk dengan Google untuk menyimpan data anggaran di Google Drive Anda'
+                            : 'Sinkronisasi Google Drive tidak tersedia di platform ini',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textTertiary,
@@ -100,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                       if (kIsWeb)
                         auth.signInButton() ?? const SizedBox.shrink()
-                      else
+                      else if (_isSupportedPlatform)
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -132,12 +140,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               elevation: 0,
                             ),
                           ),
-                        ),
+                        )
+                      else
+                        // Unsupported platform — skip directly
+                        const SizedBox.shrink(),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: _skip,
                         child: Text(
-                          'Lewati, pakai offline aja',
+                          _isSupportedPlatform
+                              ? 'Lewati, pakai offline aja'
+                              : 'Masuk tanpa sinkronisasi',
                           style: TextStyle(
                             color: AppColors.textTertiary,
                             fontSize: 13,
@@ -149,7 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Data Anda tersimpan aman di Google Drive',
+                  _isSupportedPlatform
+                      ? 'Data Anda tersimpan aman di Google Drive'
+                      : 'Data tersimpan secara lokal di perangkat ini',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textTertiary,
                   ),

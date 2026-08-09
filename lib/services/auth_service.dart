@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart';
@@ -18,6 +19,13 @@ class AuthService extends ChangeNotifier {
   bool get isInitializing => _isInitializing;
   String? get accessToken => _credentials?.accessToken;
 
+  /// Google Sign-In only works on Android, iOS, and Web.
+  /// Linux, macOS, and Windows desktop are not supported by this library.
+  bool get _isSupportedPlatform =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      kIsWeb;
+
   Stream<GoogleSignInCredentials?> get authenticationState =>
       _googleSignIn.authenticationState;
 
@@ -35,11 +43,15 @@ class AuthService extends ChangeNotifier {
     _isInitializing = true;
     notifyListeners();
 
-    try {
-      _credentials = await _googleSignIn.silentSignIn();
-    } catch (e) {
-      debugPrint('Auth: silent sign-in failed: $e');
+    if (!_isSupportedPlatform) {
       _credentials = null;
+    } else {
+      try {
+        _credentials = await _googleSignIn.silentSignIn();
+      } catch (e) {
+        debugPrint('Auth: silent sign-in failed: $e');
+        _credentials = null;
+      }
     }
 
     _isInitializing = false;
@@ -47,6 +59,10 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<GoogleSignInCredentials?> signIn() async {
+    if (!_isSupportedPlatform) {
+      debugPrint('Auth: signIn not supported on this platform');
+      return null;
+    }
     try {
       _credentials = await _googleSignIn.signIn();
       notifyListeners();
@@ -58,6 +74,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    if (!_isSupportedPlatform) return;
     await _googleSignIn.signOut();
     _credentials = null;
     notifyListeners();
