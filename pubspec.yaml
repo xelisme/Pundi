@@ -1,0 +1,30 @@
+name: hyper_budget_flutter
+description: "HyperBudget - Budget Allocation Calculator"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.3.4
+  provider: ^6.1.2
+  intl: ^0.20.2
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  uuid: ^4.5.1
+  google_fonts: ^6.2.1
+  # file_picker removed - using share_plus for export
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
