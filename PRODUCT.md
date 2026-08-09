@@ -62,4 +62,4 @@ UI copy is in Indonesian (Bahasa Indonesia). User is comfortable with both Indon
 - Bank account sync
 - Bill reminders or recurring transactions
 - Budget forecasting or predictive analytics
-- Cloud sync (local storage only)
+- Cloud sync via Google account + Firestore (see PRD-google-sync.md)
