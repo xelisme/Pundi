@@ -60,7 +60,7 @@ _MonthlySummary _calculateMonthlySummary(
 
   for (final record in records) {
     final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
-    if (date.isBefore(thisMonth) || date.isAfter(nextMonth)) continue;
+    if (date.isBefore(thisMonth) || date.compareTo(nextMonth) >= 0) continue;
 
     if (record.type == TransactionType.income) {
       totalIncome += record.totalAmount.toInt();

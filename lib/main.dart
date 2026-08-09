@@ -4,10 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'repositories/budget_repository.dart';
+import 'services/auth_service.dart';
+import 'services/drive_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,13 +18,64 @@ void main() async {
   runApp(const HyperBudgetApp());
 }
 
-class HyperBudgetApp extends StatelessWidget {
+class HyperBudgetApp extends StatefulWidget {
   const HyperBudgetApp({super.key});
 
   @override
+  State<HyperBudgetApp> createState() => _HyperBudgetAppState();
+}
+
+class _HyperBudgetAppState extends State<HyperBudgetApp> with WidgetsBindingObserver {
+  late final AuthService _authService;
+  late final DriveService _driveService;
+  late final BudgetRepository _budgetRepository;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _authService = AuthService();
+    _driveService = DriveService(_authService);
+    _budgetRepository = BudgetRepository(driveService: _driveService);
+    _initAuth();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _authService.isSignedIn) {
+      _syncOnResume();
+    }
+  }
+
+  Future<void> _syncOnResume() async {
+    if (_driveService.hasUnsyncedChanges) {
+      await _budgetRepository.syncToDrive();
+    }
+    await _driveService.syncWithRetry(_budgetRepository.exportAllData());
+  }
+
+  Future<void> _initAuth() async {
+    await _authService.init();
+    await _budgetRepository.init();
+    if (_authService.isSignedIn) {
+      await _driveService.loadLastSyncTime();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => BudgetRepository()..init(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _authService),
+        ChangeNotifierProvider.value(value: _driveService),
+        ChangeNotifierProvider.value(value: _budgetRepository),
+      ],
       child: MaterialApp(
         title: 'HyperBudget',
         debugShowCheckedModeBanner: false,
@@ -265,7 +319,7 @@ class HyperBudgetApp extends StatelessWidget {
           Locale('en', 'US'),
         ],
         locale: const Locale('id', 'ID'),
-        home: const MainNavigation(),
+        home: const AuthWrapper(),
       ),
     );
   }
@@ -291,7 +345,10 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),

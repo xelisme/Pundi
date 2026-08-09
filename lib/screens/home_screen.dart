@@ -139,6 +139,34 @@ class _HomeScreenState extends State<HomeScreen> {
     return formatter.format(amount);
   }
 
+  Widget _buildMiniMetric(
+    BuildContext context, {
+    required String label,
+    required int amount,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppColors.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Rp ${_fmt(amount.toDouble())}',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showSnackBar(BuildContext context, String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -205,6 +233,100 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+            // Grand total summary card
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                child: Consumer<BudgetRepository>(
+                  builder: (context, repo, _) {
+                    int totalIncome = 0;
+                    int totalExpenses = 0;
+
+                    for (final record in repo.history) {
+                      if (record.type == TransactionType.income) {
+                        totalIncome += record.totalAmount.toInt();
+                      } else {
+                        totalExpenses += record.totalAmount.toInt();
+                      }
+                    }
+
+                    final net = totalIncome - totalExpenses;
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.shadowColor,
+                            blurRadius: 12,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Total Keseluruhan',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: AppColors.textTertiary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMiniMetric(
+                                  context,
+                                  label: 'Pemasukan',
+                                  amount: totalIncome,
+                                  color: AppColors.income,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildMiniMetric(
+                                  context,
+                                  label: 'Pengeluaran',
+                                  amount: totalExpenses,
+                                  color: AppColors.expense,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Divider(color: AppColors.divider, height: 1),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Sisa Bersih',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                'Rp ${_fmt(net.toDouble())}',
+                                style: GoogleFonts.lora(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: net >= 0 ? AppColors.income : AppColors.expense,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

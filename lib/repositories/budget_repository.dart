@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
+import '../services/drive_service.dart';
 
 class BudgetRepository extends ChangeNotifier {
   static const _keyCategories = 'key_categories_v1';
   static const _keyHistory = 'key_history_v1';
+
+  final DriveService? _driveService;
 
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
@@ -14,6 +17,8 @@ class BudgetRepository extends ChangeNotifier {
 
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
+
+  BudgetRepository({DriveService? driveService}) : _driveService = driveService;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -42,6 +47,7 @@ class BudgetRepository extends ChangeNotifier {
   void _saveCategories() {
     final json = jsonEncode(_categories.map((c) => c.toJson()).toList());
     _prefs?.setString(_keyCategories, json);
+    _triggerSync();
   }
 
   void saveCategories(List<AllocationCategory> list) {
@@ -67,6 +73,27 @@ class BudgetRepository extends ChangeNotifier {
   void _saveHistory() {
     final json = jsonEncode(_history.map((r) => r.toJson()).toList());
     _prefs?.setString(_keyHistory, json);
+    _triggerSync();
+  }
+
+  void _triggerSync() {
+    if (_driveService == null) return;
+    _driveService!.markUnsynced();
+    syncToDrive();
+  }
+
+  Future<void> syncToDrive() async {
+    if (_driveService == null) return;
+    final data = exportAllData();
+    await _driveService!.syncWithRetry(data);
+  }
+
+  Map<String, dynamic> exportAllData() {
+    return {
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'categories': _categories.map((c) => c.toJson()).toList(),
+      'history': _history.map((r) => r.toJson()).toList(),
+    };
   }
 
   void recordTransaction(TransactionRecord record) {

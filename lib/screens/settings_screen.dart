@@ -1,19 +1,53 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
+import '../services/auth_service.dart';
+import '../services/drive_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/edit_category_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  String _formatSyncTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
+    if (diff.inDays < 1) return '${diff.inHours} jam lalu';
+    return DateFormat('dd MMM yyyy', 'id_ID').format(time);
+  }
+
+  void _showSignOutDialog(BuildContext context, AuthService auth) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keluar?'),
+        content: const Text('Data Anda akan tetap tersimpan di Google Drive.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await auth.signOut();
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(
+              'Keluar',
+              style: TextStyle(color: AppColors.expense),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +78,154 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+            // Account section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Consumer2<AuthService, DriveService>(
+                  builder: (context, auth, drive, _) {
+                    final isSignedIn = auth.isSignedIn;
+
+                    if (!isSignedIn) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceWhite,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border, width: 1),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.cloud_off,
+                              size: 20,
+                              color: AppColors.textTertiary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Mode Offline',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Data tersimpan lokal. Login untuk sync ke Drive.',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                await auth.signIn();
+                              },
+                              child: Text(
+                                'Masuk',
+                                style: TextStyle(color: AppColors.accent),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final isSyncing = drive.isSyncing;
+                    final lastSyncError = drive.lastSyncError;
+                    final lastSyncTime = drive.lastSyncTime;
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: AppColors.accentTint,
+                                child: Icon(
+                                  Icons.cloud_done,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Google Drive',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tersinkronasi',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppColors.textTertiary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Divider(color: AppColors.divider, height: 1),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Icon(
+                                isSyncing ? Icons.sync : Icons.cloud_done,
+                                size: 16,
+                                color: isSyncing
+                                    ? AppColors.warning
+                                    : (lastSyncError != null ? AppColors.error : AppColors.income),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isSyncing
+                                      ? 'Menyinkronkan...'
+                                      : lastSyncError != null
+                                          ? 'Sync gagal'
+                                          : lastSyncTime != null
+                                              ? 'Terakhir disync: ${_formatSyncTime(lastSyncTime)}'
+                                              : 'Belum pernah disync',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => _showSignOutDialog(context, auth),
+                                child: Text(
+                                  'Keluar',
+                                  style: TextStyle(color: AppColors.expense),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -337,96 +519,44 @@ class SettingsScreen extends StatelessWidget {
     final repo = context.read<BudgetRepository>();
     final csv = repo.exportToCsv();
     
-    final directory = await getApplicationDocumentsDirectory();
     final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final file = File('${directory.path}/hyper_budget_$timestamp.csv');
+    final defaultName = 'hyper_budget_$timestamp.csv';
+    
+    final path = await FilePicker.saveFile(
+      dialogTitle: 'Simpan CSV',
+      fileName: defaultName,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+    
+    if (path == null) return;
+    
+    final file = File(path);
     await file.writeAsString(csv);
     
-    // shareXFiles not supported on Linux desktop
-    final bool canShare = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-    if (canShare) {
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Data HyperBudget',
-        subject: 'Export Transaksi HyperBudget',
-      );
-    }
-    
     if (context.mounted) {
-      final msg = canShare
-          ? 'CSV berhasil diekspor: ${repo.history.length} transaksi'
-          : 'CSV disimpan di: ${file.path}';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg),
+          content: Text('CSV berhasil diekspor: ${repo.history.length} transaksi'),
           backgroundColor: AppColors.income,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 4),
         ),
       );
     }
   }
 
   void _importCsv(BuildContext context) async {
-    final controller = TextEditingController();
-    
-    final csvContent = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Import CSV'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Paste isi CSV di bawah ini:',
-              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Format: date,description,amount,in/out,category',
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: Colors.grey[500],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: TextField(
-                controller: controller,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: GoogleFonts.firaCode(fontSize: 12),
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: '2024-01-15,Gaji Bulanan,5000000,income,Gaji\n2024-01-15,Makan Siang,25000,outcome,Makan',
-                  hintStyle: GoogleFonts.firaCode(fontSize: 11, color: Colors.grey[400]),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.pop(context, controller.text),
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('Import'),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.income),
-          ),
-        ],
-      ),
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
     );
     
-    if (csvContent == null || csvContent.trim().isEmpty) return;
+    if (result == null || result.files.isEmpty) return;
+    
+    final file = File(result.files.first.path!);
+    final csvContent = await file.readAsString();
     
     if (!context.mounted) return;
     
