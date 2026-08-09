@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -91,6 +92,11 @@ class SettingsScreen extends StatelessWidget {
                     final isSignedIn = auth.isSignedIn;
 
                     if (!isSignedIn) {
+                      final isSupportedPlatform =
+                          defaultTargetPlatform == TargetPlatform.android ||
+                          defaultTargetPlatform == TargetPlatform.iOS ||
+                          kIsWeb;
+
                       return Container(
                         decoration: BoxDecoration(
                           color: AppColors.surfaceWhite,
@@ -111,14 +117,18 @@ class SettingsScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Mode Offline',
+                                    isSupportedPlatform
+                                        ? 'Mode Offline'
+                                        : 'Sinkronisasi Tidak Tersedia',
                                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Data tersimpan lokal. Login untuk sync ke Drive.',
+                                    isSupportedPlatform
+                                        ? 'Data tersimpan lokal. Login untuk sync ke Drive.'
+                                        : 'Google Drive sync hanya tersedia di Android, iOS, dan Web.',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppColors.textTertiary,
                                     ),
@@ -126,15 +136,16 @@ class SettingsScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            TextButton(
-                              onPressed: () async {
-                                await auth.signIn();
-                              },
-                              child: Text(
-                                'Masuk',
-                                style: TextStyle(color: AppColors.accent),
+                            if (isSupportedPlatform)
+                              TextButton(
+                                onPressed: () async {
+                                  await auth.signIn();
+                                },
+                                child: Text(
+                                  'Masuk',
+                                  style: TextStyle(color: AppColors.accent),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       );
