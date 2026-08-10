@@ -18,10 +18,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     final auth = context.read<AuthService>();
-    await auth.signIn();
-    if (mounted) {
-      setState(() => _isLoading = false);
+    final user = await auth.signIn();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Jika login GAGAL (user == null & ada error), tampilkan SnackBar
+    if (user == null && auth.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.lastError!),
+          backgroundColor: AppColors.expense,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
+    // Jika login BERHASIL (user != null), Consumer<AuthService> di AuthWrapper
+    // akan otomatis rebuild dan mengganti LoginScreen → MainNavigation
   }
 
   void _skip() {

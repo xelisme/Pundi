@@ -11,11 +11,13 @@ class AuthService extends ChangeNotifier {
   User? _user;
   bool _isInitializing = true;
   String? _accessToken;
+  String? _lastError;
 
   User? get user => _user;
   bool get isSignedIn => _user != null;
   bool get isInitializing => _isInitializing;
   String? get accessToken => _accessToken;
+  String? get lastError => _lastError;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -44,19 +46,19 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<User?> signIn() async {
+    _lastError = null;
     try {
       if (kIsWeb) {
-        // Web: Use Firebase popup to avoid DWDS hangs
         final GoogleAuthProvider authProvider = GoogleAuthProvider();
         final userCredential = await _auth.signInWithPopup(authProvider);
         _user = userCredential.user;
         notifyListeners();
         return _user;
       } else {
-        // Mobile: Standard Google Sign-In flow
         final GoogleSignInAccount? gUser = await _googleSignIn.signIn();
         if (gUser == null) {
-          debugPrint('Auth: Google Sign-In cancelled by user');
+          _lastError = 'Login dibatalkan oleh pengguna';
+          notifyListeners();
           return null;
         }
 
@@ -72,11 +74,14 @@ class AuthService extends ChangeNotifier {
 
         final userCredential = await _auth.signInWithCredential(credential);
         _user = userCredential.user;
+        _lastError = null;
         notifyListeners();
         return _user;
       }
     } catch (e) {
       debugPrint('Auth: signIn failed: $e');
+      _lastError = 'Login gagal: $e';
+      notifyListeners();
       return null;
     }
   }
