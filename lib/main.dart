@@ -7,7 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'repositories/budget_repository.dart';
 import 'services/auth_service.dart';
-import 'services/drive_service.dart';
+import 'services/firestore_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
@@ -30,46 +30,40 @@ class BudgetAIApp extends StatefulWidget {
   State<BudgetAIApp> createState() => _BudgetAIAppState();
 }
 
-class _BudgetAIAppState extends State<BudgetAIApp> with WidgetsBindingObserver {
+class _BudgetAIAppState extends State<BudgetAIApp> {
   late final AuthService _authService;
-  late final DriveService _driveService;
+  late final FirestoreService _firestoreService;
   late final BudgetRepository _budgetRepository;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _authService = AuthService();
-    _driveService = DriveService(_authService);
-    _budgetRepository = BudgetRepository(driveService: _driveService);
+    _firestoreService = FirestoreService();
+    _budgetRepository = BudgetRepository(firestoreService: _firestoreService);
     _initAuth();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _authService.isSignedIn) {
-      _syncOnResume();
-    }
-  }
-
-  Future<void> _syncOnResume() async {
-    if (_driveService.hasUnsyncedChanges) {
-      await _budgetRepository.syncToDrive();
-    }
-    await _driveService.syncWithRetry(_budgetRepository.exportAllData());
   }
 
   Future<void> _initAuth() async {
     await _authService.init();
     await _budgetRepository.init();
+
+    _authService.addListener(() {
+      final user = _authService.user;
+      if (user != null) {
+        _budgetRepository.setCurrentUser(user.uid);
+        _budgetRepository.loadFromCloud(user.uid);
+      } else {
+        _budgetRepository.setCurrentUser(null);
+      }
+    });
+
     if (_authService.isSignedIn) {
-      await _driveService.loadLastSyncTime();
+      final user = _authService.user;
+      if (user != null) {
+        _budgetRepository.setCurrentUser(user.uid);
+        await _budgetRepository.loadFromCloud(user.uid);
+      }
     }
   }
 
@@ -78,7 +72,6 @@ class _BudgetAIAppState extends State<BudgetAIApp> with WidgetsBindingObserver {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _authService),
-        ChangeNotifierProvider.value(value: _driveService),
         ChangeNotifierProvider.value(value: _budgetRepository),
       ],
       child: MaterialApp(

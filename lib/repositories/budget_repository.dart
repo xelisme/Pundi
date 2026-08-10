@@ -3,34 +3,83 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
-import '../services/drive_service.dart';
+import '../services/firestore_service.dart';
 
 class BudgetRepository extends ChangeNotifier {
   static const _keyCategories = 'key_categories_v1';
   static const _keyHistory = 'key_history_v1';
 
-  final DriveService? _driveService;
+  final FirestoreService? _firestoreService;
 
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
   SharedPreferences? _prefs;
+  String? _currentUid;
+  bool _isLoadingFromCloud = false;
 
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
+  bool get isLoadingFromCloud => _isLoadingFromCloud;
 
-  BudgetRepository({DriveService? driveService}) : _driveService = driveService;
+  BudgetRepository({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    _loadCategories();
-    _loadHistory();
+    _loadCategoriesLocal();
+    _loadHistoryLocal();
   }
 
-  void _loadCategories() {
+  void setCurrentUser(String? uid) {
+    _currentUid = uid;
+  }
+
+  Future<void> loadFromCloud(String uid) async {
+    if (_firestoreService == null) return;
+    _isLoadingFromCloud = true;
+    notifyListeners();
+
+    final data = await _firestoreService.loadData(uid);
+    if (data != null) {
+      try {
+        final cats = (data['categories'] as List<dynamic>?)
+                ?.map((e) => AllocationCategory.fromJson(e as Map<String, dynamic>))
+                .toList();
+        if (cats != null && cats.isNotEmpty) {
+          _categories = cats;
+          _saveCategoriesLocal();
+        }
+
+        final hist = (data['history'] as List<dynamic>?)
+                ?.map((e) => TransactionRecord.fromJson(e as Map<String, dynamic>))
+                .toList();
+        if (hist != null) {
+          _history = hist;
+          _saveHistoryLocal();
+        }
+      } catch (e) {
+        debugPrint('BudgetRepository: loadFromCloud parse error: $e');
+      }
+    }
+
+    _isLoadingFromCloud = false;
+    notifyListeners();
+  }
+
+  Future<void> _saveToCloud() async {
+    if (_firestoreService == null || _currentUid == null) return;
+    await _firestoreService.saveData(
+      uid: _currentUid!,
+      categories: _categories,
+      history: _history,
+    );
+  }
+
+  void _loadCategoriesLocal() {
     final json = _prefs?.getString(_keyCategories);
     if (json == null || json.isEmpty) {
       _categories = _getDefaultCategories();
-      _saveCategories();
+      _saveCategoriesLocal();
     } else {
       try {
         final list = (jsonDecode(json) as List<dynamic>)
@@ -44,19 +93,19 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _saveCategories() {
+  void _saveCategoriesLocal() {
     final json = jsonEncode(_categories.map((c) => c.toJson()).toList());
     _prefs?.setString(_keyCategories, json);
-    _triggerSync();
   }
 
   void saveCategories(List<AllocationCategory> list) {
     _categories = list;
-    _saveCategories();
+    _saveCategoriesLocal();
+    _saveToCloud();
     notifyListeners();
   }
 
-  void _loadHistory() {
+  void _loadHistoryLocal() {
     final json = _prefs?.getString(_keyHistory);
     if (json != null && json.isNotEmpty) {
       try {
@@ -70,22 +119,13 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _saveHistory() {
+  void _saveHistoryLocal() {
     final json = jsonEncode(_history.map((r) => r.toJson()).toList());
     _prefs?.setString(_keyHistory, json);
-    _triggerSync();
   }
 
   void _triggerSync() {
-    if (_driveService == null) return;
-    _driveService!.markUnsynced();
-    syncToDrive();
-  }
-
-  Future<void> syncToDrive() async {
-    if (_driveService == null) return;
-    final data = exportAllData();
-    await _driveService!.syncWithRetry(data);
+    _saveToCloud();
   }
 
   Map<String, dynamic> exportAllData() {
@@ -98,7 +138,8 @@ class BudgetRepository extends ChangeNotifier {
 
   void recordTransaction(TransactionRecord record) {
     _history = [record, ..._history];
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
@@ -136,38 +177,44 @@ class BudgetRepository extends ChangeNotifier {
       chargedTo: chargedToCategory,
     );
     _history = [record, ..._history];
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void deleteTransaction(String transactionId) {
     _history = _history.where((r) => r.id != transactionId).toList();
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void clearHistory() {
     _history = [];
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void addCategory(AllocationCategory category) {
     _categories = [..._categories, category];
-    _saveCategories();
+    _saveCategoriesLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void updateCategory(String id, AllocationCategory updated) {
     _categories = _categories.map((c) => c.id == id ? updated : c).toList();
-    _saveCategories();
+    _saveCategoriesLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void deleteCategory(String id) {
     if (_categories.length <= 1) return;
     _categories = _categories.where((c) => c.id != id).toList();
-    _saveCategories();
+    _saveCategoriesLocal();
+    _triggerSync();
     notifyListeners();
   }
 
@@ -206,7 +253,8 @@ class BudgetRepository extends ChangeNotifier {
       receiptDate: old.receiptDate,
       chargedTo: newChargedTo,
     );
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
@@ -268,21 +316,24 @@ class BudgetRepository extends ChangeNotifier {
       receiptDate: newReceiptDate ?? old.receiptDate,
       chargedTo: chargedTo,
     );
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void resetToDefaults() {
     _categories = _getDefaultCategories();
-    _saveCategories();
+    _saveCategoriesLocal();
+    _triggerSync();
     notifyListeners();
   }
 
   void resetAllData() {
     _categories = _getDefaultCategories();
     _history = [];
-    _saveCategories();
-    _saveHistory();
+    _saveCategoriesLocal();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
   }
 
@@ -419,7 +470,8 @@ class BudgetRepository extends ChangeNotifier {
       imported++;
     }
     
-    _saveHistory();
+    _saveHistoryLocal();
+    _triggerSync();
     notifyListeners();
     return imported;
   }
