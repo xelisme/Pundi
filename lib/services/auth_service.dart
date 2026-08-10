@@ -6,7 +6,10 @@ import 'package:http/http.dart' as http;
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: '1041465650841-h58q7rdv339ln2kbndl3du7emauj8lqi.apps.googleusercontent.com',
+    scopes: ['email'],
+  );
 
   User? _user;
   bool _isInitializing = true;
