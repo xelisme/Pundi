@@ -7,7 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'repositories/budget_repository.dart';
 import 'services/auth_service.dart';
-import 'services/firestore_service.dart';
+import 'services/drive_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
@@ -32,38 +32,32 @@ class BudgetAIApp extends StatefulWidget {
 
 class _BudgetAIAppState extends State<BudgetAIApp> {
   late final AuthService _authService;
-  late final FirestoreService _firestoreService;
+  late final DriveService _driveService;
   late final BudgetRepository _budgetRepository;
 
   @override
   void initState() {
     super.initState();
     _authService = AuthService();
-    _firestoreService = FirestoreService();
-    _budgetRepository = BudgetRepository(firestoreService: _firestoreService);
+    _driveService = DriveService(_authService);
+    _budgetRepository = BudgetRepository(driveService: _driveService);
     _initAuth();
   }
 
   Future<void> _initAuth() async {
     await _authService.init();
     await _budgetRepository.init();
+    await _driveService.loadLastSyncTime();
 
     _authService.addListener(() {
       final user = _authService.user;
       if (user != null) {
-        _budgetRepository.setCurrentUser(user.uid);
-        _budgetRepository.loadFromCloud(user.uid);
-      } else {
-        _budgetRepository.setCurrentUser(null);
+        _budgetRepository.loadFromCloud();
       }
     });
 
     if (_authService.isSignedIn) {
-      final user = _authService.user;
-      if (user != null) {
-        _budgetRepository.setCurrentUser(user.uid);
-        await _budgetRepository.loadFromCloud(user.uid);
-      }
+      await _budgetRepository.loadFromCloud();
     }
   }
 
@@ -72,6 +66,7 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _authService),
+        ChangeNotifierProvider.value(value: _driveService),
         ChangeNotifierProvider.value(value: _budgetRepository),
       ],
       child: MaterialApp(

@@ -26,7 +26,6 @@ dependencies:
   googleapis: ^14.0.0
   googleapis_auth: ^2.3.3
   http: ^1.2.0
-  cloud_firestore: ^5.6.12
 
 dev_dependencies:
   flutter_test:

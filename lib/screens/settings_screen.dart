@@ -7,11 +7,21 @@ import 'package:file_picker/file_picker.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../services/auth_service.dart';
+import '../services/drive_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/edit_category_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  String _formatSyncTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
+    if (diff.inDays < 1) return '${diff.inHours} jam lalu';
+    return DateFormat('dd MMM yyyy', 'id_ID').format(time);
+  }
 
   void _showSignOutDialog(BuildContext context, AuthService auth) {
     showDialog(
@@ -76,8 +86,8 @@ class SettingsScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Consumer2<AuthService, BudgetRepository>(
-                  builder: (context, auth, repo, _) {
+                child: Consumer2<AuthService, DriveService>(
+                  builder: (context, auth, drive, _) {
                     final isSignedIn = auth.isSignedIn;
 
                     if (!isSignedIn) {
@@ -108,7 +118,7 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Data tersimpan lokal. Login untuk sync ke cloud.',
+                                    'Data tersimpan lokal. Login untuk sync ke Drive.',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppColors.textTertiary,
                                     ),
@@ -140,6 +150,10 @@ class SettingsScreen extends StatelessWidget {
                       );
                     }
 
+                    final isSyncing = drive.isSyncing;
+                    final lastSyncError = drive.lastSyncError;
+                    final lastSyncTime = drive.lastSyncTime;
+
                     return Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
@@ -166,13 +180,13 @@ class SettingsScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Cloud Sync',
+                                      'Google Drive',
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     Text(
-                                      auth.user?.email ?? 'Tersinkronasi',
+                                      'Tersinkronasi',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                         color: AppColors.textTertiary,
                                       ),
@@ -188,18 +202,22 @@ class SettingsScreen extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                repo.isLoadingFromCloud ? Icons.sync : Icons.cloud_done,
+                                isSyncing ? Icons.sync : Icons.cloud_done,
                                 size: 16,
-                                color: repo.isLoadingFromCloud
+                                color: isSyncing
                                     ? AppColors.warning
-                                    : AppColors.income,
+                                    : (lastSyncError != null ? AppColors.error : AppColors.income),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  repo.isLoadingFromCloud
-                                      ? 'Memuat data...'
-                                      : 'Data tersimpan di cloud',
+                                  isSyncing
+                                      ? 'Menyinkronkan...'
+                                      : lastSyncError != null
+                                          ? 'Sync gagal'
+                                          : lastSyncTime != null
+                                              ? 'Terakhir disync: ${_formatSyncTime(lastSyncTime)}'
+                                              : 'Belum pernah disync',
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppColors.textTertiary,
                                   ),

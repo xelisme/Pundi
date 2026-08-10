@@ -3,26 +3,23 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
-import '../services/firestore_service.dart';
+import '../services/drive_service.dart';
 
 class BudgetRepository extends ChangeNotifier {
   static const _keyCategories = 'key_categories_v1';
   static const _keyHistory = 'key_history_v1';
 
-  final FirestoreService? _firestoreService;
+  final DriveService? _driveService;
 
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
   SharedPreferences? _prefs;
-  String? _currentUid;
-  bool _isLoadingFromCloud = false;
 
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
-  bool get isLoadingFromCloud => _isLoadingFromCloud;
 
-  BudgetRepository({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService;
+  BudgetRepository({DriveService? driveService})
+      : _driveService = driveService;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -30,16 +27,11 @@ class BudgetRepository extends ChangeNotifier {
     _loadHistoryLocal();
   }
 
-  void setCurrentUser(String? uid) {
-    _currentUid = uid;
-  }
-
-  Future<void> loadFromCloud(String uid) async {
-    if (_firestoreService == null) return;
-    _isLoadingFromCloud = true;
+  Future<void> loadFromCloud() async {
+    if (_driveService == null) return;
     notifyListeners();
 
-    final data = await _firestoreService.loadData(uid);
+    final data = await _driveService.downloadData();
     if (data != null) {
       try {
         final cats = (data['categories'] as List<dynamic>?)
@@ -62,17 +54,12 @@ class BudgetRepository extends ChangeNotifier {
       }
     }
 
-    _isLoadingFromCloud = false;
     notifyListeners();
   }
 
   Future<void> _saveToCloud() async {
-    if (_firestoreService == null || _currentUid == null) return;
-    await _firestoreService.saveData(
-      uid: _currentUid!,
-      categories: _categories,
-      history: _history,
-    );
+    if (_driveService == null) return;
+    await _driveService.syncWithRetry(exportAllData());
   }
 
   void _loadCategoriesLocal() {
