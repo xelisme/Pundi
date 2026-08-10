@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1041465650841",
+    "project_id": "budgetai-7145b",
+    "storage_bucket": "budgetai-7145b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041465650841:android:f29eb8aff3dbd503a79208",
+        "android_client_info": {
+          "package_name": "com.hyperbudget.hyper_budget_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1041465650841-sa00e20dq3he47vev30on4g5dd2fl9la.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEcWZmECGXI0AcrLxOrBKXI2M6UM-ddYw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1041465650841-sa00e20dq3he47vev30on4g5dd2fl9la.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

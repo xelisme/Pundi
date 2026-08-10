@@ -1,0 +1,12 @@
+{
+  "auth": {
+    "authorizedDomains": ["localhost"],
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "BudgetAI",
+        "supportEmail": "reyvien@smk2pangkalpinang.sch.id"
+      }
+    }
+  }
+}
