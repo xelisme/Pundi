@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'HyperBudget',
+                      'BudgetAI',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: AppColors.textSecondary,
                         letterSpacing: 0.5,

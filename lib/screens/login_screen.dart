@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'HyperBudget',
+                  'BudgetAI',
                   style: GoogleFonts.lora(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
