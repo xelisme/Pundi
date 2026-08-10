@@ -128,7 +128,17 @@ class SettingsScreen extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () async {
-                                await auth.signIn();
+                                final user = await auth.signIn();
+                                if (user == null && auth.lastError != null && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(auth.lastError!),
+                                      backgroundColor: AppColors.expense,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
                               },
                               child: Text(
                                 'Masuk',
