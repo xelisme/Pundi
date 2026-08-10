@@ -15,17 +15,17 @@ import 'screens/auth_wrapper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
-  runApp(const HyperBudgetApp());
+  runApp(const BudgetAIApp());
 }
 
-class HyperBudgetApp extends StatefulWidget {
-  const HyperBudgetApp({super.key});
+class BudgetAIApp extends StatefulWidget {
+  const BudgetAIApp({super.key});
 
   @override
-  State<HyperBudgetApp> createState() => _HyperBudgetAppState();
+  State<BudgetAIApp> createState() => _BudgetAIAppState();
 }
 
-class _HyperBudgetAppState extends State<HyperBudgetApp> with WidgetsBindingObserver {
+class _BudgetAIAppState extends State<BudgetAIApp> with WidgetsBindingObserver {
   late final AuthService _authService;
   late final DriveService _driveService;
   late final BudgetRepository _budgetRepository;
@@ -77,7 +77,7 @@ class _HyperBudgetAppState extends State<HyperBudgetApp> with WidgetsBindingObse
         ChangeNotifierProvider.value(value: _budgetRepository),
       ],
       child: MaterialApp(
-        title: 'HyperBudget',
+        title: 'BudgetAI',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           // Luxury Minimal Color Scheme

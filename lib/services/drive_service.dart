@@ -14,7 +14,7 @@ class DriveService extends ChangeNotifier {
   String? _lastSyncError;
   bool _unsyncedFlag = false;
 
-  static const String _folderName = 'HyperBudget';
+  static const String _folderName = 'BudgetAI';
   static const String _fileName = 'data.json';
   static const String _keyUnsynced = 'sync_unsynced_flag';
   static const String _keyLastSync = 'sync_last_sync_time';

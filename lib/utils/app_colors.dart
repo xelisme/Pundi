@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// HyperBudget Luxury Minimal Design System
+/// BudgetAI Luxury Minimal Design System
 /// Near-monochrome palette with warm sophistication
 /// Refined restraint, expensive simplicity
 class AppColors {
