@@ -1,12 +1,1 @@
-{
-  "auth": {
-    "authorizedDomains": ["localhost"],
-    "providers": {
-      "emailPassword": true,
-      "googleSignIn": {
-        "oAuthBrandDisplayName": "BudgetAI",
-        "supportEmail": "reyvien@smk2pangkalpinang.sch.id"
-      }
-    }
-  }
-}
+{"auth":{"authorizedDomains":["localhost"],"providers":{"emailPassword":true,"googleSignIn":{"oAuthBrandDisplayName":"BudgetAI","supportEmail":"reyvien@smk2pangkalpinang.sch.id"}}},"flutter":{"platforms":{"android":{"default":{"projectId":"budgetai-7145b","appId":"1:1041465650841:android:f29eb8aff3dbd503a79208","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"budgetai-7145b","configurations":{"android":"1:1041465650841:android:f29eb8aff3dbd503a79208"}}}}}}
