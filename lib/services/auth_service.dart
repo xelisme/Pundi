@@ -1,72 +1,67 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
-import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart';
 
 class AuthService extends ChangeNotifier {
-  static const _clientId = '29195344058-liil7hlifg6pb6fd5i0uog40d0jgv98i.apps.googleusercontent.com';
-  static const _clientSecret = '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';
-  static const _scopes = ['https://www.googleapis.com/auth/drive.file'];
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  late final GoogleSignIn _googleSignIn;
-
-  GoogleSignInCredentials? _credentials;
+  User? _user;
   bool _isInitializing = true;
+  String? _accessToken;
 
-  GoogleSignInCredentials? get credentials => _credentials;
-  bool get isSignedIn => _credentials != null;
+  User? get user => _user;
+  bool get isSignedIn => _user != null;
   bool get isInitializing => _isInitializing;
-  String? get accessToken => _credentials?.accessToken;
+  String? get accessToken => _accessToken;
 
-  /// Google Sign-In only works on Android, iOS, and Web.
-  /// Linux, macOS, and Windows desktop are not supported by this library.
-  bool get _isSupportedPlatform =>
-      defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.iOS ||
-      kIsWeb;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Stream<GoogleSignInCredentials?> get authenticationState =>
-      _googleSignIn.authenticationState;
-
-  AuthService() {
-    _googleSignIn = GoogleSignIn(
-      params: GoogleSignInParams(
-        clientId: _clientId,
-        clientSecret: _clientSecret,
-        scopes: _scopes,
-      ),
-    );
+  /// Create an authenticated HTTP client using the stored access token.
+  /// Returns null if not signed in.
+  http.Client? get authenticatedClient {
+    if (_accessToken == null) return null;
+    return _AuthHttpClient(_accessToken!);
   }
 
   Future<void> init() async {
     _isInitializing = true;
     notifyListeners();
 
-    if (!_isSupportedPlatform) {
-      _credentials = null;
-    } else {
-      try {
-        _credentials = await _googleSignIn.silentSignIn();
-      } catch (e) {
-        debugPrint('Auth: silent sign-in failed: $e');
-        _credentials = null;
-      }
-    }
+    _auth.authStateChanges().listen((User? user) {
+      _user = user;
+      notifyListeners();
+    });
 
+    _user = _auth.currentUser;
     _isInitializing = false;
     notifyListeners();
   }
 
-  Future<GoogleSignInCredentials?> signIn() async {
-    if (!_isSupportedPlatform) {
-      debugPrint('Auth: signIn not supported on this platform');
-      return null;
-    }
+  Future<User?> signIn() async {
     try {
-      _credentials = await _googleSignIn.signIn();
+      final GoogleSignInAccount? gUser = await _googleSignIn.signIn();
+      if (gUser == null) {
+        debugPrint('Auth: Google Sign-In cancelled by user');
+        return null;
+      }
+
+      final GoogleSignInAuthentication gAuth = await gUser.authentication;
+
+      // Store access token for Drive API
+      _accessToken = gAuth.accessToken;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: gAuth.accessToken,
+        idToken: gAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      _user = userCredential.user;
       notifyListeners();
-      return _credentials;
+      return _user;
     } catch (e) {
       debugPrint('Auth: signIn failed: $e');
       return null;
@@ -74,21 +69,24 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    if (!_isSupportedPlatform) return;
     await _googleSignIn.signOut();
-    _credentials = null;
+    await _auth.signOut();
+    _user = null;
+    _accessToken = null;
     notifyListeners();
   }
+}
 
-  Future<http.Client?> get authenticatedClient async {
-    return await _googleSignIn.authenticatedClient;
-  }
+/// Simple HTTP client that adds Authorization header to every request.
+class _AuthHttpClient extends http.BaseClient {
+  final String _accessToken;
+  final http.Client _inner = http.Client();
 
-  Widget? signInButton({VoidCallback? onTap}) {
-    try {
-      return _googleSignIn.signInButton();
-    } catch (e) {
-      return null;
-    }
+  _AuthHttpClient(this._accessToken);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers['Authorization'] = 'Bearer $_accessToken';
+    return _inner.send(request);
   }
 }

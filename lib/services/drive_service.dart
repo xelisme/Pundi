@@ -35,7 +35,7 @@ class DriveService extends ChangeNotifier {
 
   Future<bool> _initDriveApi() async {
     try {
-      final client = await _authService.authenticatedClient;
+      final client = _authService.authenticatedClient;
       if (client == null) return false;
 
       _driveApi = drive.DriveApi(client);
