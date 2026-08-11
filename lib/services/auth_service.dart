@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email'],
+    scopes: ['email', 'https://www.googleapis.com/auth/drive.file'],
   );
 
   User? _user;
@@ -20,6 +20,8 @@ class AuthService extends ChangeNotifier {
   bool get isInitializing => _isInitializing;
   String? get accessToken => _accessToken;
   String? get lastError => _lastError;
+
+  bool get isGoogleUser => _accessToken != null;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -43,6 +45,20 @@ class AuthService extends ChangeNotifier {
     });
 
     _user = _auth.currentUser;
+
+    // Coba restore Google access token via silent sign-in
+    if (_user != null && !kIsWeb) {
+      try {
+        final gUser = await _googleSignIn.signInSilently();
+        if (gUser != null) {
+          final gAuth = await gUser.authentication;
+          _accessToken = gAuth.accessToken;
+        }
+      } catch (e) {
+        debugPrint('Auth: silent sign-in failed (email user or no prior Google session): $e');
+      }
+    }
+
     _isInitializing = false;
     notifyListeners();
   }

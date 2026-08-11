@@ -109,6 +109,7 @@ class SettingsScreen extends StatelessWidget {
                 child: Consumer2<AuthService, DriveService>(
                   builder: (context, auth, drive, _) {
                     final isSignedIn = auth.isSignedIn;
+                    final isGoogleUser = auth.isGoogleUser;
 
                     if (!isSignedIn) {
                     return Container(
@@ -162,6 +163,71 @@ class SettingsScreen extends StatelessWidget {
                               },
                               child: Text(
                                 'Masuk',
+                                style: TextStyle(color: AppColors.accent),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // User login via email tapi belum connect Google Drive
+                    if (!isGoogleUser) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceWhite,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border, width: 1),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.cloud_off, size: 20, color: AppColors.warning),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Sync Tidak Aktif',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Login dengan Google untuk aktifkan sync Drive.',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final user = await auth.signIn();
+                                if (user == null && auth.lastError != null && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(auth.lastError!),
+                                      backgroundColor: AppColors.expense,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                'Hubungkan',
                                 style: TextStyle(color: AppColors.accent),
                               ),
                             ),
@@ -384,6 +450,14 @@ class SettingsScreen extends StatelessWidget {
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                       ),
+                                      if (repo.categories.length > 1)
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20),
+                                          onPressed: () => _confirmDeleteCategory(context, category),
+                                          color: AppColors.error,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -463,10 +537,86 @@ class SettingsScreen extends StatelessWidget {
     return Color(int.parse('FF$hex', radix: 16));
   }
 
-  void _showEditDialog(BuildContext context, AllocationCategory? category) {
+  void _showEditDialog(BuildContext context, AllocationCategory? category) async {
+    final repo = context.read<BudgetRepository>();
+    final existingNames = repo.categories.map((c) => c.name).toList();
+
+    final result = await showDialog<AllocationCategory>(
+      context: context,
+      builder: (context) => EditCategoryDialog(
+        category: category,
+        existingNames: existingNames,
+      ),
+    );
+
+    if (result != null && context.mounted) {
+      if (category == null) {
+        repo.addCategory(result);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kategori "${result.name}" ditambahkan'),
+            backgroundColor: AppColors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      } else {
+        repo.updateCategory(category.id, result);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kategori "${result.name}" diperbarui'),
+            backgroundColor: AppColors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmDeleteCategory(BuildContext context, AllocationCategory category) {
     showDialog(
       context: context,
-      builder: (context) => EditCategoryDialog(category: category),
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          'Hapus Kategori?',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: Text(
+          'Kategori "${category.name}" akan dihapus permanen.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<BudgetRepository>().deleteCategory(category.id);
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Kategori "${category.name}" dihapus'),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.surfaceWhite,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
     );
   }
 
