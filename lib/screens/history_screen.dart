@@ -258,7 +258,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       children: [
                         Text(
                           'Riwayat',
-                          style: GoogleFonts.lora(
+                          style: GoogleFonts.nunito(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
                             letterSpacing: -0.03,
@@ -488,7 +488,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             children: [
                                               Text(
                                                 isExpense ? '−' : '+',
-                                                style: GoogleFonts.lora(
+                                                style: GoogleFonts.nunito(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w600,
                                                   color: color,
@@ -498,7 +498,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               Text(
                                                 'Rp ${_fmt(record.totalAmount)}',
                                                 textAlign: TextAlign.right,
-                                                style: GoogleFonts.lora(
+                                                style: GoogleFonts.nunito(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w600,
                                                   color: color,

@@ -159,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount.toDouble())}',
-          style: GoogleFonts.lora(
+          style: GoogleFonts.nunito(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.02,
@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       'BudgetAI',
-                      style: GoogleFonts.lora(
+                      style: GoogleFonts.nunito(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.03,
@@ -325,7 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               Text(
                                 'Rp ${_fmt(net.toDouble())}',
-                                style: GoogleFonts.lora(
+                                style: GoogleFonts.nunito(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: -0.03,
@@ -458,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             Text(
                               '${cat.percentage.toStringAsFixed(0)}%',
-                              style: GoogleFonts.lora(
+                              style: GoogleFonts.nunito(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
@@ -506,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: _inputController,
                       keyboardType: TextInputType.number,
-                      style: GoogleFonts.lora(
+                      style: GoogleFonts.nunito(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.02,
@@ -514,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       decoration: InputDecoration(
                         hintText: '5000000',
-                        hintStyle: GoogleFonts.lora(
+                        hintStyle: GoogleFonts.nunito(
                           fontSize: 28,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.02,
@@ -664,7 +664,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   controller: _inputController,
                   keyboardType: TextInputType.number,
-                  style: GoogleFonts.lora(
+                  style: GoogleFonts.nunito(
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.02,
@@ -672,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: '250000',
-                    hintStyle: GoogleFonts.lora(
+                    hintStyle: GoogleFonts.nunito(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.02,

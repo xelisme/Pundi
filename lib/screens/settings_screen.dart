@@ -65,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Pengaturan',
-                      style: GoogleFonts.lora(
+                      style: GoogleFonts.nunito(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.03,
@@ -354,7 +354,7 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                       Text(
                                         '${category.percentage.toStringAsFixed(0)}%',
-                                        style: GoogleFonts.lora(
+                                        style: GoogleFonts.nunito(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.textPrimary,

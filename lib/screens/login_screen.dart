@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Text(
                   'BudgetAI',
-                  style: GoogleFonts.lora(
+                  style: GoogleFonts.nunito(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
