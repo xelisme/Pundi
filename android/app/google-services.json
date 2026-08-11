@@ -14,25 +14,21 @@
       },
       "oauth_client": [
         {
-          "client_id": "1041465650841-h58q7rdv339ln2kbndl3du7emauj8lqi.apps.googleusercontent.com",
-          "client_type": 1
-        },
-        {
           "client_id": "1041465650841-t51s5v6ko3bb14ll31iojosu2g194lgj.apps.googleusercontent.com",
-          "client_type": 2,
+          "client_type": 1,
           "android_info": {
             "package_name": "com.hyperbudget.hyper_budget_flutter",
             "certificate_hash": "90e5ecaabd208168bf8e4d585ad3787b9397b538"
           }
         },
         {
-          "client_id": "1041465650841-sa00e20dq3he47vev30on4g5dd2fl9la.apps.googleusercontent.com",
+          "client_id": "1041465650841-h58q7rdv339ln2kbndl3du7emauj8lqi.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyD8HjHeJmVeoxK2q9BUI0J8JkyrLi3sshc"
+          "current_key": "AIzaSyBRvYwN8T_6TlFK7dsUEbxQTQKpci-MK-Q"
         }
       ],
       "services": {
@@ -40,10 +36,6 @@
           "other_platform_oauth_client": [
             {
               "client_id": "1041465650841-h58q7rdv339ln2kbndl3du7emauj8lqi.apps.googleusercontent.com",
-              "client_type": 1
-            },
-            {
-              "client_id": "1041465650841-sa00e20dq3he47vev30on4g5dd2fl9la.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
