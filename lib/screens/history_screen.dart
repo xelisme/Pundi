@@ -331,7 +331,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (history.isNotEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.surfaceWhite,
