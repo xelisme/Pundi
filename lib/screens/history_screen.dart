@@ -241,7 +241,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.baseBeige,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
@@ -249,31 +249,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
             return CustomScrollView(
               slivers: [
-                // Header
+                // Duolingo green hero header
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Container(
+                    color: AppColors.green,
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                    child: Row(
                       children: [
-                        Text(
-                          'Riwayat',
-                          style: GoogleFonts.nunito(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.03,
-                            height: 1.1,
-                            color: AppColors.textPrimary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Riwayat',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${history.length} transaksi',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${history.length} TRANSAKSI'.toUpperCase(),
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.textTertiary,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.w500,
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.history, color: Colors.white, size: 24),
                         ),
                       ],
                     ),

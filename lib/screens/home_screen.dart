@@ -7,6 +7,7 @@ import '../repositories/budget_repository.dart';
 
 import '../utils/app_colors.dart';
 import '../widgets/radial_allocation_viz.dart';
+import '../widgets/duolingo_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -174,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? AppColors.expense : AppColors.baseBrown,
+        backgroundColor: isError ? AppColors.red : AppColors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -210,35 +211,52 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.baseBeige,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Refined header
+            // Duolingo green hero header
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.green,
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                child: Row(
                   children: [
-                    Text(
-                      'BudgetAI',
-                      style: GoogleFonts.nunito(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.03,
-                        height: 1.1,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BudgetAI',
+                            style: GoogleFonts.nunito(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Alokasi Anggaran',
+                            style: GoogleFonts.nunito(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'ALOKASI ANGGARAN',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textTertiary,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
                       ),
+                      child: const Icon(Icons.savings_outlined, color: Colors.white, size: 24),
                     ),
                   ],
                 ),
@@ -369,27 +387,69 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildModeToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border, width: 1),
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
       child: Row(
         children: [
           Expanded(
-            child: _ModeButton(
-              label: 'Pemasukan',
-              isSelected: !_isExpense,
+            child: GestureDetector(
               onTap: () => setState(() => _isExpense = false),
-              color: AppColors.income,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: !_isExpense ? AppColors.green : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: !_isExpense ? [
+                    BoxShadow(
+                      color: AppColors.green.withValues(alpha: 0.3),
+                      offset: const Offset(0, 2),
+                      blurRadius: 6,
+                    ),
+                  ] : null,
+                ),
+                child: Text(
+                  'Pemasukan',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: !_isExpense ? Colors.white : AppColors.grayNav,
+                  ),
+                ),
+              ),
             ),
           ),
           Expanded(
-            child: _ModeButton(
-              label: 'Pengeluaran',
-              isSelected: _isExpense,
+            child: GestureDetector(
               onTap: () => setState(() => _isExpense = true),
-              color: AppColors.expense,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isExpense ? AppColors.red : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: _isExpense ? [
+                    BoxShadow(
+                      color: AppColors.red.withValues(alpha: 0.3),
+                      offset: const Offset(0, 2),
+                      blurRadius: 6,
+                    ),
+                  ] : null,
+                ),
+                child: Text(
+                  'Pengeluaran',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _isExpense ? Colors.white : AppColors.grayNav,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -498,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: AppColors.baseBeige.withValues(alpha: 0.2),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.border, width: 1),
                     ),
@@ -554,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       
                       return Container(
                         decoration: BoxDecoration(
-                          color: AppColors.baseBeige.withValues(alpha: 0.2),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.border),
                         ),
@@ -591,25 +651,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  SizedBox(
-                    height: 52,
-                    child: TextButton(
-                      onPressed: () => _submitIncome(context),
-                      style: TextButton.styleFrom(
-                        backgroundColor: AppColors.income,
-                        foregroundColor: AppColors.surfaceWhite,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Catat Pemasukan',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.surfaceWhite,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  DuolingoButton(
+                    label: 'Catat Pemasukan',
+                    onPressed: () => _submitIncome(context),
+                    type: DuolingoButtonType.primary,
+                    fullWidth: true,
+                    icon: Icons.arrow_upward_rounded,
                   ),
                 ],
               ),
@@ -656,7 +703,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.border, width: 1),
                 ),
@@ -701,7 +748,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.border, width: 1),
                 ),
@@ -735,7 +782,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.border, width: 1),
                 ),
@@ -821,7 +868,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: AppColors.baseBeige.withValues(alpha: 0.2),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.border, width: 1),
                   ),
@@ -843,25 +890,12 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 28),
 
               // Submit button
-              SizedBox(
-                height: 52,
-                child: TextButton(
-                  onPressed: () => _submitExpense(context),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.expense,
-                    foregroundColor: AppColors.surfaceWhite,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Catat Pengeluaran',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.surfaceWhite,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+              DuolingoButton(
+                label: 'Catat Pengeluaran',
+                onPressed: () => _submitExpense(context),
+                type: DuolingoButtonType.danger,
+                fullWidth: true,
+                icon: Icons.arrow_downward_rounded,
               ),
             ],
           ),

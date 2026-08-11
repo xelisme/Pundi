@@ -146,7 +146,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.baseBeige,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
@@ -155,10 +155,11 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
             return CustomScrollView(
               slivers: [
-                // Header - Editorial style
+                // Duolingo green hero header with month selector
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
+                  child: Container(
+                    color: AppColors.green,
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -166,39 +167,50 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           'Ringkasan',
                           style: GoogleFonts.nunito(
                             fontSize: 28,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.03,
+                            fontWeight: FontWeight.w800,
                             height: 1.1,
-                            color: AppColors.textPrimary,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        // Month selector
+                        const SizedBox(height: 12),
+                        // Month selector pill
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              onPressed: _previousMonth,
-                              icon: const Icon(Icons.chevron_left, size: 20),
-                              color: AppColors.textSecondary,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              monthName.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppColors.textPrimary,
-                                letterSpacing: 1.5,
-                                fontWeight: FontWeight.w600,
+                            GestureDetector(
+                              onTap: _previousMonth,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: _nextMonth,
-                              icon: const Icon(Icons.chevron_right, size: 20),
-                              color: AppColors.textSecondary,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
+                            const SizedBox(width: 12),
+                            Text(
+                              monthName.toUpperCase(),
+                              style: GoogleFonts.nunito(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: _nextMonth,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                              ),
                             ),
                           ],
                         ),
