@@ -541,11 +541,17 @@ class SettingsScreen extends StatelessWidget {
     final repo = context.read<BudgetRepository>();
     final existingNames = repo.categories.map((c) => c.name).toList();
 
+    // Total persentase semua kategori KECUALI yang sedang diedit
+    final totalOther = repo.categories
+        .where((c) => c.id != category?.id)
+        .fold<double>(0, (sum, c) => sum + c.percentage);
+
     final result = await showDialog<AllocationCategory>(
       context: context,
       builder: (context) => EditCategoryDialog(
         category: category,
         existingNames: existingNames,
+        totalOtherPercentages: totalOther,
       ),
     );
 

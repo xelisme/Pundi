@@ -21,8 +21,16 @@ const _presetColors = [
 class EditCategoryDialog extends StatefulWidget {
   final AllocationCategory? category;
   final List<String> existingNames;
+  /// Total persentase semua kategori KECUALI kategori yang sedang diedit.
+  /// Dipakai untuk validasi agar total tidak melebihi 100%.
+  final double totalOtherPercentages;
 
-  const EditCategoryDialog({super.key, this.category, this.existingNames = const []});
+  const EditCategoryDialog({
+    super.key,
+    this.category,
+    this.existingNames = const [],
+    this.totalOtherPercentages = 0,
+  });
 
   @override
   State<EditCategoryDialog> createState() => _EditCategoryDialogState();
@@ -33,9 +41,12 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
   late TextEditingController _percentController;
   late TextEditingController _descController;
   late String _selectedColor;
-  
+
   String? _nameError;
   String? _percentError;
+
+  // Persentase yang saat ini diketik user (untuk hint real-time)
+  double? _currentPercent;
 
   @override
   void initState() {
@@ -46,6 +57,18 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     );
     _descController = TextEditingController(text: widget.category?.description ?? '');
     _selectedColor = widget.category?.colorHex ?? _presetColors[0];
+    _currentPercent = widget.category?.percentage;
+
+    _percentController.addListener(_onPercentChanged);
+  }
+
+  void _onPercentChanged() {
+    final val = double.tryParse(_percentController.text.trim());
+    setState(() {
+      _currentPercent = val;
+      // Reset error saat user mengetik ulang
+      _percentError = null;
+    });
   }
 
   @override
@@ -61,6 +84,8 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     return Color(int.parse('FF$hex', radix: 16));
   }
 
+  double get _maxAvailable => 100.0 - widget.totalOtherPercentages;
+
   void _save() {
     final name = _nameController.text.trim();
     final percent = double.tryParse(_percentController.text.trim());
@@ -71,27 +96,32 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     });
 
     if (name.isEmpty) {
-      setState(() {
-        _nameError = 'Nama kategori harus diisi';
-      });
+      setState(() => _nameError = 'Nama kategori harus diisi');
       return;
     }
 
     if (percent == null || percent <= 0) {
+      setState(() => _percentError = 'Persentase harus lebih dari 0');
+      return;
+    }
+
+    // Validasi total tidak melebihi 100%
+    final total = widget.totalOtherPercentages + percent;
+    if (total > 100) {
       setState(() {
-        _percentError = 'Persentase harus lebih dari 0';
+        _percentError =
+            'Total akan menjadi ${total.toStringAsFixed(0)}%. '
+            'Maksimal tersisa ${_maxAvailable.toStringAsFixed(0)}%';
       });
       return;
     }
 
-    // Check duplicate name (exclude current category if editing)
+    // Cek nama duplikat (kecuali kategori yang sedang diedit)
     final isDuplicate = widget.existingNames.any(
       (n) => n.toLowerCase() == name.toLowerCase() && n != widget.category?.name,
     );
     if (isDuplicate) {
-      setState(() {
-        _nameError = 'Nama kategori sudah ada';
-      });
+      setState(() => _nameError = 'Nama kategori sudah ada');
       return;
     }
 
@@ -163,9 +193,63 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     );
   }
 
+  /// Chip hint di bawah field persentase yang tampil real-time.
+  Widget _buildPercentHint() {
+    final max = _maxAvailable;
+    final current = _currentPercent;
+
+    // Hitung total jika ada input
+    final total = current != null ? widget.totalOtherPercentages + current : null;
+    final isOver = total != null && total > 100;
+
+    Color chipColor;
+    Color textColor;
+    String label;
+
+    if (isOver) {
+      chipColor = AppColors.error.withValues(alpha: 0.1);
+      textColor = AppColors.error;
+      label = 'Total ${total.toStringAsFixed(0)}% — melebihi 100%';
+    } else if (current != null && current > max * 0.9 && max > 0) {
+      chipColor = AppColors.warning.withValues(alpha: 0.12);
+      textColor = AppColors.warning;
+      label = 'Hampir penuh — sisa ${(max - current).clamp(0, 100).toStringAsFixed(0)}%';
+    } else {
+      chipColor = AppColors.accent.withValues(alpha: 0.08);
+      textColor = AppColors.textTertiary;
+      label = 'Tersedia: ${max.toStringAsFixed(0)}% dari 100%';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: chipColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.category != null;
+    final canSave = _currentPercent != null &&
+        _currentPercent! > 0 &&
+        (widget.totalOtherPercentages + _currentPercent!) <= 100;
 
     return AlertDialog(
       backgroundColor: AppColors.surfaceWhite,
@@ -221,6 +305,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
               ),
               keyboardType: TextInputType.number,
             ),
+            _buildPercentHint(),
             const SizedBox(height: 16),
             TextField(
               controller: _descController,
@@ -279,9 +364,10 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
           ),
         ),
         TextButton(
-          onPressed: _save,
+          // Disable tombol SIMPAN jika input tidak valid
+          onPressed: canSave ? _save : null,
           style: TextButton.styleFrom(
-            backgroundColor: AppColors.accent,
+            backgroundColor: canSave ? AppColors.accent : AppColors.border,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
