@@ -266,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Grand total summary card
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                 child: Consumer<BudgetRepository>(
                   builder: (context, repo, _) {
                     int totalIncome = 0;

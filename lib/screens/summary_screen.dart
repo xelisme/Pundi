@@ -222,7 +222,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 // Hero numbers - Editorial pull quote style
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,

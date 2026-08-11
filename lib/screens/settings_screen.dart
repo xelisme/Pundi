@@ -105,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
             // Account section
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 child: Consumer2<AuthService, DriveService>(
                   builder: (context, auth, drive, _) {
                     final isSignedIn = auth.isSignedIn;
