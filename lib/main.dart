@@ -13,6 +13,7 @@ import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/auth_wrapper.dart';
+import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -342,15 +343,42 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Beranda'),
-          NavigationDestination(icon: Icon(Icons.history), label: 'Riwayat'),
-          NavigationDestination(icon: Icon(Icons.pie_chart), label: 'Ringkasan'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Pengaturan'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Color(0xFFE5E5E5), width: 2),
+          ),
+        ),
+        child: NavigationBar(
+          backgroundColor: Colors.white,
+          indicatorColor: Color(0xFFD7F5B2),
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) => setState(() => _currentIndex = index),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home, color: AppColors.green),
+              label: 'Beranda',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.history_outlined),
+              selectedIcon: Icon(Icons.history, color: AppColors.green),
+              label: 'Riwayat',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.pie_chart_outline),
+              selectedIcon: Icon(Icons.pie_chart, color: AppColors.green),
+              label: 'Ringkasan',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings, color: AppColors.green),
+              label: 'Pengaturan',
+            ),
+          ],
+        ),
       ),
     );
   }
