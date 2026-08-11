@@ -18,8 +18,7 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
 
-  BudgetRepository({DriveService? driveService})
-      : _driveService = driveService;
+  BudgetRepository({this._driveService});
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
