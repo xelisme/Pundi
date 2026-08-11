@@ -158,40 +158,47 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 // Header - Editorial style
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Ringkasan',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 0.5,
+                          style: GoogleFonts.lora(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.03,
+                            height: 1.1,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         // Month selector
                         Row(
                           children: [
                             IconButton(
                               onPressed: _previousMonth,
-                              icon: const Icon(Icons.chevron_left),
+                              icon: const Icon(Icons.chevron_left, size: 20),
                               color: AppColors.textSecondary,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
-                            Expanded(
-                              child: Text(
-                                monthName,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
+                            const SizedBox(width: 8),
+                            Text(
+                              monthName.toUpperCase(),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppColors.textPrimary,
+                                letterSpacing: 1.5,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             IconButton(
                               onPressed: _nextMonth,
-                              icon: const Icon(Icons.chevron_right),
+                              icon: const Icon(Icons.chevron_right, size: 20),
                               color: AppColors.textSecondary,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),
@@ -203,20 +210,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 // Hero numbers - Editorial pull quote style
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.shadowColor,
-                            blurRadius: 12,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1),
                       ),
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(28),
                       child: Column(
                         children: [
                           // Net income - the lead
@@ -228,9 +229,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                             isLarge: true,
                           ),
                           
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
                           Divider(color: AppColors.divider, height: 1),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
 
                           // Supporting metrics
                           Row(
@@ -243,7 +244,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                   color: AppColors.income,
                                 ),
                               ),
-                              const SizedBox(width: 24),
+                              Container(
+                                width: 1,
+                                height: 40,
+                                color: AppColors.divider,
+                              ),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: _buildSupportingMetric(
                                   context,
@@ -268,9 +274,11 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                       child: Text(
-                        'Per Kategori',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                        'PER KATEGORI',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textTertiary,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -403,19 +411,20 @@ class _SummaryScreenState extends State<SummaryScreen> {
     return Column(
       children: [
         Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: AppColors.textTertiary,
-            letterSpacing: 0.5,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           'Rp ${_fmt(amount)}',
           style: GoogleFonts.lora(
-            fontSize: isLarge ? 40 : 32,
+            fontSize: isLarge ? 36 : 28,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.02,
+            letterSpacing: -0.03,
             height: 1.1,
             color: color,
           ),
@@ -434,18 +443,20 @@ class _SummaryScreenState extends State<SummaryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: AppColors.textTertiary,
+            letterSpacing: 0.8,
+            fontSize: 10,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount)}',
           style: GoogleFonts.lora(
-            fontSize: 24,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.01,
+            letterSpacing: -0.02,
             color: color,
           ),
         ),

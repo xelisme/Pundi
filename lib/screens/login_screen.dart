@@ -60,101 +60,105 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: GoogleFonts.lora(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.03,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'Alokasi Anggaran',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  'ALOKASI ANGGARAN',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.textTertiary,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 48),
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowColor,
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1),
                   ),
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
                       Icon(
                         Icons.cloud_upload_outlined,
-                        size: 48,
+                        size: 40,
                         color: AppColors.textTertiary,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       Text(
-                        'Sinkronkan data Anda',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                        'SINKRONISASI DATA',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textPrimary,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Masuk dengan Google untuk menyimpan data anggaran di Google Drive Anda',
+                        'Masuk dengan Google untuk menyimpan data anggaran di Google Drive Anda secara otomatis.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textTertiary,
+                          height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
+                        height: 52,
+                        child: TextButton(
                           onPressed: _isLoading ? null : _signIn,
-                          icon: _isLoading
+                          style: TextButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: _isLoading
                               ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Icon(Icons.g_mobiledata, size: 24),
-                          label: Text(
-                            _isLoading ? 'Masuk...' : 'Masuk dengan Google',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
+                              : Text(
+                                  'MASUK DENGAN GOOGLE',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextButton(
                         onPressed: _skip,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         child: Text(
-                          'Lewati, pakai offline aja',
-                          style: TextStyle(
+                          'LEWATI, PAKAI OFFLINE AJA',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: AppColors.textTertiary,
-                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 Text(
                   'Data Anda tersimpan aman di Google Drive',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
