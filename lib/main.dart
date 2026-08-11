@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -15,45 +16,123 @@ import 'screens/settings_screen.dart';
 import 'screens/auth_wrapper.dart';
 import 'utils/app_colors.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await initializeDateFormatting('id_ID', null);
-
-  // Inisialisasi semua service di sini, SEBELUM runApp,
-  // agar providers sudah siap saat widget tree pertama kali dibangun.
-  final authService = AuthService();
-  final driveService = DriveService(authService);
-  final budgetRepository = BudgetRepository(driveService: driveService);
-
-  // Init auth (dengan timeout built-in di signInSilently).
-  await authService.init();
-  // Init local storage.
-  await budgetRepository.init();
-  await driveService.loadLastSyncTime();
-
-  // Kalau sudah login, load data dari cloud di background setelah app muncul.
-  if (authService.isSignedIn) {
-    budgetRepository.loadFromCloud(); // sengaja tidak di-await
+/// Tulis error ke file di disk agar bisa dibaca walau device tidak nyambung ADB.
+Future<void> _writeCrashLog(String tag, Object error, [StackTrace? stack]) async {
+  try {
+    final dir = Directory('/sdcard/Download');
+    if (!await dir.exists()) return;
+    final file = File('/sdcard/Download/hyperbudget_crash.log');
+    final ts = DateTime.now().toIso8601String();
+    final content =
+        '[$ts] $tag\n$error\n\n${stack ?? ""}\n${'-' * 60}\n';
+    await file.writeAsString(content, mode: FileMode.append);
+  } catch (_) {
+    // abaikan kalau gagal menulis
   }
+}
 
-  // Listener untuk auto-sync saat user sign-in setelah app berjalan.
-  authService.addListener(() {
-    if (authService.isSignedIn) {
-      budgetRepository.loadFromCloud();
-    }
-  });
-
-  runApp(
-    BudgetAIApp(
-      authService: authService,
-      driveService: driveService,
-      budgetRepository: budgetRepository,
+/// Layar merah pengganti layar hitam: menampilkan pesan error secara utuh.
+Widget _buildErrorScreen(Object error, [StackTrace? stack]) {
+  return MaterialApp(
+    home: Scaffold(
+      backgroundColor: Colors.red.shade50,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Terjadi error (bukan layar hitam)',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '$error\n\n${stack ?? ""}',
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
+}
+
+void main() async {
+  // Tangkap error saat build widget → tampilkan layar merah (bukan hitam).
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    _writeCrashLog('build', details.exception, details.stack);
+    return _buildErrorScreen(details.exception, details.stack);
+  };
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    // Inisialisasi Firebase. Di Android, FirebaseInitProvider dari library
+    // otomatis membuat default app di native level sebelum Dart sempat
+    // mencatatnya di Firebase.apps — sehingga guard `isEmpty` saja tidak cukup.
+    // Tangkap error "duplicate-app"/"too-many-apps" dan abaikan, karena app
+    // default memang sudah siap dipakai oleh semua plugin Firebase.
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+    } on FirebaseException catch (e) {
+      if (e.code == 'duplicate-app' || e.code == 'too-many-apps') {
+        debugPrint('Firebase: default app sudah ada (native), lanjut.');
+      } else {
+        rethrow;
+      }
+    }
+    await initializeDateFormatting('id_ID', null);
+
+    // Inisialisasi semua service di sini, SEBELUM runApp,
+    // agar providers sudah siap saat widget tree pertama kali dibangun.
+    final authService = AuthService();
+    final driveService = DriveService(authService);
+    final budgetRepository = BudgetRepository(driveService: driveService);
+
+    // Init auth (dengan timeout built-in di signInSilently).
+    await authService.init();
+    // Init local storage.
+    await budgetRepository.init();
+    await driveService.loadLastSyncTime();
+
+    // Kalau sudah login, load data dari cloud di background setelah app muncul.
+    if (authService.isSignedIn) {
+      budgetRepository.loadFromCloud(); // sengaja tidak di-await
+    }
+
+    // Listener untuk auto-sync saat user sign-in setelah app berjalan.
+    authService.addListener(() {
+      if (authService.isSignedIn) {
+        budgetRepository.loadFromCloud();
+      }
+    });
+
+    runApp(
+      BudgetAIApp(
+        authService: authService,
+        driveService: driveService,
+        budgetRepository: budgetRepository,
+      ),
+    );
+  } catch (e, stack) {
+    // Error di init (Firebase, dll) → layar merah + log file.
+    await _writeCrashLog('init', e, stack);
+    runApp(_buildErrorScreen('Init gagal: $e', stack));
+  }
 }
 
 class BudgetAIApp extends StatelessWidget {
