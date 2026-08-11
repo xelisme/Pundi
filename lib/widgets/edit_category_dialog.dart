@@ -178,7 +178,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
         children: [
           Text(
             isEditing ? 'Edit Kategori' : 'Tambah Kategori',
-            style: GoogleFonts.lora(
+            style: GoogleFonts.nunito(
               fontSize: 24,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,

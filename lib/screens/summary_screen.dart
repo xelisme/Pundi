@@ -164,7 +164,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       children: [
                         Text(
                           'Ringkasan',
-                          style: GoogleFonts.lora(
+                          style: GoogleFonts.nunito(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
                             letterSpacing: -0.03,
@@ -369,7 +369,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                           child: Text(
                                             'Rp ${_fmt(balance.balance)}',
                                             textAlign: TextAlign.right,
-                                            style: GoogleFonts.lora(
+                                            style: GoogleFonts.nunito(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
                                               color: balance.balance >= 0 ? AppColors.income : AppColors.expense,
@@ -421,7 +421,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         const SizedBox(height: 12),
         Text(
           'Rp ${_fmt(amount)}',
-          style: GoogleFonts.lora(
+          style: GoogleFonts.nunito(
             fontSize: isLarge ? 36 : 28,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.03,
@@ -453,7 +453,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount)}',
-          style: GoogleFonts.lora(
+          style: GoogleFonts.nunito(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.02,
