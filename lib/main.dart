@@ -73,231 +73,231 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
         title: 'BudgetAI',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // Luxury Minimal Color Scheme
+          // Duolingo Bright Color Scheme
           colorScheme: ColorScheme(
             brightness: Brightness.light,
-            primary: const Color(0xFF8B3A3A), // Burgundy accent
-            onPrimary: const Color(0xFFFDFBF7),
-            secondary: const Color(0xFF8B3A3A),
-            onSecondary: const Color(0xFFFDFBF7),
-            tertiary: const Color(0xFF6B7F6E), // Income sage
-            onTertiary: const Color(0xFFFDFBF7),
-            error: const Color(0xFF8B6B5F),
-            onError: const Color(0xFFFDFBF7),
-            surface: const Color(0xFFFDFBF7), // Card surface
-            onSurface: const Color(0xFF2C2420), // Deep brown text
-            surfaceContainerLowest: const Color(0xFFE8E4DD), // Base beige
-            surfaceContainerLow: const Color(0xFFF5F2EC),
-            surfaceContainer: const Color(0xFFFDFBF7),
+            primary: const Color(0xFF58CC02), // Duolingo green
+            onPrimary: Colors.white,
+            secondary: const Color(0xFF1CB0F6), // Duolingo blue
+            onSecondary: Colors.white,
+            tertiary: const Color(0xFFFFC800), // Duolingo golden
+            onTertiary: const Color(0xFF100F3E),
+            error: const Color(0xFFFF4B4B), // Duolingo red
+            onError: Colors.white,
+            surface: const Color(0xFFFEFEFE), // Almost white
+            onSurface: const Color(0xFF100F3E), // Dark blue text
+            surfaceContainerLowest: const Color(0xFFF5F5F5),
+            surfaceContainerLow: const Color(0xFFFAFAFA),
+            surfaceContainer: const Color(0xFFFEFEFE),
             surfaceContainerHigh: Colors.white,
-            outline: const Color(0xFFD9D3CC),
-            outlineVariant: const Color(0xFFEBE7E1),
-            shadow: const Color(0xFF504028),
+            outline: const Color(0xFFE5E5E5), // Border color
+            outlineVariant: const Color(0xFFF0F0F0),
+            shadow: Colors.black,
           ),
-          scaffoldBackgroundColor: const Color(0xFFE8E4DD),
+          scaffoldBackgroundColor: Colors.white, // Pure white
           useMaterial3: true,
           
-          // Luxury Minimal Typography - Lora serif for numbers, Inter for UI
-          textTheme: GoogleFonts.interTextTheme().copyWith(
-            displayLarge: GoogleFonts.lora(
-              fontSize: 48,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.02,
+          // Duolingo Playful Typography - Nunito rounded sans
+          textTheme: GoogleFonts.nunitoTextTheme().copyWith(
+            displayLarge: GoogleFonts.nunito(
+              fontSize: 52,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
               height: 1.1,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF58CC02), // Green for hero
             ),
-            displayMedium: GoogleFonts.lora(
+            displayMedium: GoogleFonts.nunito(
               fontSize: 36,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.02,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
               height: 1.15,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E), // Dark blue
             ),
-            displaySmall: GoogleFonts.lora(
+            displaySmall: GoogleFonts.nunito(
               fontSize: 28,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.01,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
               height: 1.2,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            headlineLarge: GoogleFonts.inter(
+            headlineLarge: GoogleFonts.nunito(
               fontSize: 24,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.02,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
               height: 1.25,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            headlineMedium: GoogleFonts.inter(
+            headlineMedium: GoogleFonts.nunito(
               fontSize: 20,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.01,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
               height: 1.3,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            headlineSmall: GoogleFonts.inter(
+            headlineSmall: GoogleFonts.nunito(
               fontSize: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.01,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
               height: 1.3,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            titleLarge: GoogleFonts.inter(
+            titleLarge: GoogleFonts.nunito(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.01,
-              height: 1.4,
-              color: const Color(0xFF2C2420),
-            ),
-            titleMedium: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.4,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            titleSmall: GoogleFonts.inter(
+            titleMedium: GoogleFonts.nunito(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
+              height: 1.4,
+              color: const Color(0xFF100F3E),
+            ),
+            titleSmall: GoogleFonts.nunito(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
               height: 1.4,
-              color: const Color(0xFF5A4E47),
+              color: const Color(0xFF4B4B4B), // Gray text
             ),
-            bodyLarge: GoogleFonts.inter(
+            bodyLarge: GoogleFonts.nunito(
               fontSize: 16,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF4B4B4B),
             ),
-            bodyMedium: GoogleFonts.inter(
+            bodyMedium: GoogleFonts.nunito(
               fontSize: 14,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
-              color: const Color(0xFF5A4E47),
+              color: const Color(0xFF777777), // Light gray
             ),
-            bodySmall: GoogleFonts.inter(
+            bodySmall: GoogleFonts.nunito(
               fontSize: 12,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
-              color: const Color(0xFF8A7F77),
+              color: const Color(0xFF777777),
             ),
-            labelLarge: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+            labelLarge: GoogleFonts.nunito(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.4,
-              color: const Color(0xFF2C2420),
+              color: const Color(0xFF100F3E),
             ),
-            labelMedium: GoogleFonts.inter(
+            labelMedium: GoogleFonts.nunito(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               letterSpacing: 0,
               height: 1.4,
-              color: const Color(0xFF5A4E47),
+              color: const Color(0xFF4B4B4B),
             ),
-            labelSmall: GoogleFonts.inter(
+            labelSmall: GoogleFonts.nunito(
               fontSize: 11,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.01,
+              fontWeight: FontWeight.w800, // Duolingo section labels
+              letterSpacing: 2, // Duolingo: 2px tracking
               height: 1.4,
-              color: const Color(0xFF8A7F77),
+              color: const Color(0xFFAFAFAF), // Nav gray
             ),
           ),
           
-          // Refined card elevation
+          // Duolingo 3D card style
           cardTheme: CardThemeData(
-            color: const Color(0xFFFDFBF7),
-            elevation: 0,
-            shadowColor: const Color(0xFF504028).withValues(alpha: 0.06),
+            color: Colors.white,
+            elevation: 2, // Subtle elevation for depth
+            shadowColor: Colors.black.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12), // Duolingo: 12px
             ),
           ),
           
-          // AppBar with new palette
+          // AppBar with Duolingo green
           appBarTheme: AppBarTheme(
             elevation: 0,
             centerTitle: true,
-            backgroundColor: const Color(0xFF2C2420),
-            foregroundColor: const Color(0xFFFDFBF7),
-            titleTextStyle: GoogleFonts.inter(
+            backgroundColor: const Color(0xFF58CC02), // Green
+            foregroundColor: Colors.white,
+            titleTextStyle: GoogleFonts.nunito(
               fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFFDFBF7),
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
           
-          // Input decoration - minimal, refined
+          // Input decoration - Duolingo style
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: const Color(0xFFFDFBF7),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFD9D3CC), width: 1),
+              borderRadius: BorderRadius.circular(12), // Duolingo: 12px
+              borderSide: const BorderSide(color: Color(0xFFE5E5E5), width: 2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFD9D3CC), width: 1),
+              borderSide: const BorderSide(color: Color(0xFFE5E5E5), width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF8B3A3A), width: 1.5),
+              borderSide: const BorderSide(color: Color(0xFF58CC02), width: 2), // Green
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF8B6B5F), width: 1),
+              borderSide: const BorderSide(color: Color(0xFFFF4B4B), width: 2), // Red
             ),
-            hintStyle: GoogleFonts.inter(
+            hintStyle: GoogleFonts.nunito(
               fontSize: 15,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF8A7F77),
+              color: const Color(0xFF777777),
             ),
           ),
           
-          // Filled button with burgundy accent
+          // Duolingo 3D green button
           filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF8B3A3A),
-              foregroundColor: const Color(0xFFFDFBF7),
+              backgroundColor: const Color(0xFF58CC02), // Duolingo green
+              foregroundColor: Colors.white,
               elevation: 0,
               shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12), // Duolingo: 12px
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: GoogleFonts.nunito(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0,
+                fontWeight: FontWeight.w700, // Bold
+                letterSpacing: 0.5,
               ),
             ),
           ),
           
-          // Elevated button
+          // Elevated button - Duolingo 3D style
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B3A3A),
-              foregroundColor: const Color(0xFFFDFBF7),
+              backgroundColor: const Color(0xFF58CC02), // Green
+              foregroundColor: Colors.white,
               elevation: 0,
               shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: GoogleFonts.nunito(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
           ),
           
-          // Divider
+          // Divider - Duolingo style
           dividerTheme: const DividerThemeData(
-            color: Color(0xFFEBE7E1),
+            color: Color(0xFFE5E5E5), // Duolingo border color
             thickness: 1,
             space: 1,
           ),
