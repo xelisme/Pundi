@@ -17,102 +17,105 @@ import 'utils/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await initializeDateFormatting('id_ID', null);
-  runApp(const BudgetAIApp());
-}
 
-class BudgetAIApp extends StatefulWidget {
-  const BudgetAIApp({super.key});
+  // Inisialisasi semua service di sini, SEBELUM runApp,
+  // agar providers sudah siap saat widget tree pertama kali dibangun.
+  final authService = AuthService();
+  final driveService = DriveService(authService);
+  final budgetRepository = BudgetRepository(driveService: driveService);
 
-  @override
-  State<BudgetAIApp> createState() => _BudgetAIAppState();
-}
+  // Init auth (dengan timeout built-in di signInSilently).
+  await authService.init();
+  // Init local storage.
+  await budgetRepository.init();
+  await driveService.loadLastSyncTime();
 
-class _BudgetAIAppState extends State<BudgetAIApp> {
-  late final AuthService _authService;
-  late final DriveService _driveService;
-  late final BudgetRepository _budgetRepository;
-
-  @override
-  void initState() {
-    super.initState();
-    _authService = AuthService();
-    _driveService = DriveService(_authService);
-    _budgetRepository = BudgetRepository(driveService: _driveService);
-    _initAuth();
+  // Kalau sudah login, load data dari cloud di background setelah app muncul.
+  if (authService.isSignedIn) {
+    budgetRepository.loadFromCloud(); // sengaja tidak di-await
   }
 
-  Future<void> _initAuth() async {
-    await _authService.init();
-    await _budgetRepository.init();
-    await _driveService.loadLastSyncTime();
-
-    _authService.addListener(() {
-      final user = _authService.user;
-      if (user != null) {
-        _budgetRepository.loadFromCloud();
-      }
-    });
-
-    if (_authService.isSignedIn) {
-      await _budgetRepository.loadFromCloud();
+  // Listener untuk auto-sync saat user sign-in setelah app berjalan.
+  authService.addListener(() {
+    if (authService.isSignedIn) {
+      budgetRepository.loadFromCloud();
     }
-  }
+  });
+
+  runApp(
+    BudgetAIApp(
+      authService: authService,
+      driveService: driveService,
+      budgetRepository: budgetRepository,
+    ),
+  );
+}
+
+class BudgetAIApp extends StatelessWidget {
+  final AuthService authService;
+  final DriveService driveService;
+  final BudgetRepository budgetRepository;
+
+  const BudgetAIApp({
+    super.key,
+    required this.authService,
+    required this.driveService,
+    required this.budgetRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: _authService),
-        ChangeNotifierProvider.value(value: _driveService),
-        ChangeNotifierProvider.value(value: _budgetRepository),
+        ChangeNotifierProvider.value(value: authService),
+        ChangeNotifierProvider.value(value: driveService),
+        ChangeNotifierProvider.value(value: budgetRepository),
       ],
       child: MaterialApp(
         title: 'BudgetAI',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // Duolingo Bright Color Scheme
           colorScheme: ColorScheme(
             brightness: Brightness.light,
-            primary: const Color(0xFF58CC02), // Duolingo green
+            primary: const Color(0xFF58CC02),
             onPrimary: Colors.white,
-            secondary: const Color(0xFF1CB0F6), // Duolingo blue
+            secondary: const Color(0xFF1CB0F6),
             onSecondary: Colors.white,
-            tertiary: const Color(0xFFFFC800), // Duolingo golden
+            tertiary: const Color(0xFFFFC800),
             onTertiary: const Color(0xFF100F3E),
-            error: const Color(0xFFFF4B4B), // Duolingo red
+            error: const Color(0xFFFF4B4B),
             onError: Colors.white,
-            surface: const Color(0xFFFEFEFE), // Almost white
-            onSurface: const Color(0xFF100F3E), // Dark blue text
+            surface: const Color(0xFFFEFEFE),
+            onSurface: const Color(0xFF100F3E),
             surfaceContainerLowest: const Color(0xFFF5F5F5),
             surfaceContainerLow: const Color(0xFFFAFAFA),
             surfaceContainer: const Color(0xFFFEFEFE),
             surfaceContainerHigh: Colors.white,
-            outline: const Color(0xFFE5E5E5), // Border color
+            outline: const Color(0xFFE5E5E5),
             outlineVariant: const Color(0xFFF0F0F0),
             shadow: Colors.black,
           ),
-          scaffoldBackgroundColor: Colors.white, // Pure white
+          scaffoldBackgroundColor: Colors.white,
           useMaterial3: true,
-          
-          // Duolingo Playful Typography - Nunito rounded sans
           textTheme: GoogleFonts.nunitoTextTheme().copyWith(
             displayLarge: GoogleFonts.nunito(
               fontSize: 52,
               fontWeight: FontWeight.w800,
               letterSpacing: 0,
               height: 1.1,
-              color: const Color(0xFF58CC02), // Green for hero
+              color: const Color(0xFF58CC02),
             ),
             displayMedium: GoogleFonts.nunito(
               fontSize: 36,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.15,
-              color: const Color(0xFF100F3E), // Dark blue
+              color: const Color(0xFF100F3E),
             ),
             displaySmall: GoogleFonts.nunito(
               fontSize: 28,
@@ -161,7 +164,7 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               height: 1.4,
-              color: const Color(0xFF4B4B4B), // Gray text
+              color: const Color(0xFF4B4B4B),
             ),
             bodyLarge: GoogleFonts.nunito(
               fontSize: 16,
@@ -175,7 +178,7 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
-              color: const Color(0xFF777777), // Light gray
+              color: const Color(0xFF777777),
             ),
             bodySmall: GoogleFonts.nunito(
               fontSize: 12,
@@ -200,28 +203,24 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
             ),
             labelSmall: GoogleFonts.nunito(
               fontSize: 11,
-              fontWeight: FontWeight.w800, // Duolingo section labels
-              letterSpacing: 2, // Duolingo: 2px tracking
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
               height: 1.4,
-              color: const Color(0xFFAFAFAF), // Nav gray
+              color: const Color(0xFFAFAFAF),
             ),
           ),
-          
-          // Duolingo 3D card style
           cardTheme: CardThemeData(
             color: Colors.white,
-            elevation: 2, // Subtle elevation for depth
+            elevation: 2,
             shadowColor: Colors.black.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12), // Duolingo: 12px
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          
-          // AppBar with Duolingo green
           appBarTheme: AppBarTheme(
             elevation: 0,
             centerTitle: true,
-            backgroundColor: const Color(0xFF58CC02), // Green
+            backgroundColor: const Color(0xFF58CC02),
             foregroundColor: Colors.white,
             titleTextStyle: GoogleFonts.nunito(
               fontSize: 18,
@@ -229,14 +228,13 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
               color: Colors.white,
             ),
           ),
-          
-          // Input decoration - Duolingo style
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), // Duolingo: 12px
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE5E5E5), width: 2),
             ),
             enabledBorder: OutlineInputBorder(
@@ -245,11 +243,11 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF58CC02), width: 2), // Green
+              borderSide: const BorderSide(color: Color(0xFF58CC02), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFFF4B4B), width: 2), // Red
+              borderSide: const BorderSide(color: Color(0xFFFF4B4B), width: 2),
             ),
             hintStyle: GoogleFonts.nunito(
               fontSize: 15,
@@ -257,34 +255,14 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
               color: const Color(0xFF777777),
             ),
           ),
-          
-          // Duolingo 3D green button
           filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF58CC02), // Duolingo green
+              backgroundColor: const Color(0xFF58CC02),
               foregroundColor: Colors.white,
               elevation: 0,
               shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12), // Duolingo: 12px
-              ),
-              textStyle: GoogleFonts.nunito(
-                fontSize: 15,
-                fontWeight: FontWeight.w700, // Bold
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          
-          // Elevated button - Duolingo 3D style
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF58CC02), // Green
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -295,10 +273,26 @@ class _BudgetAIAppState extends State<BudgetAIApp> {
               ),
             ),
           ),
-          
-          // Divider - Duolingo style
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF58CC02),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: GoogleFonts.nunito(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           dividerTheme: const DividerThemeData(
-            color: Color(0xFFE5E5E5), // Duolingo border color
+            color: Color(0xFFE5E5E5),
             thickness: 1,
             space: 1,
           ),
@@ -352,28 +346,29 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: NavigationBar(
           backgroundColor: Colors.white,
-          indicatorColor: Color(0xFFD7F5B2),
+          indicatorColor: const Color(0xFFD7F5B2),
           selectedIndex: _currentIndex,
-          onDestinationSelected: (index) => setState(() => _currentIndex = index),
+          onDestinationSelected: (index) =>
+              setState(() => _currentIndex = index),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
+              icon: const Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home, color: AppColors.green),
               label: 'Beranda',
             ),
             NavigationDestination(
-              icon: Icon(Icons.history_outlined),
+              icon: const Icon(Icons.history_outlined),
               selectedIcon: Icon(Icons.history, color: AppColors.green),
               label: 'Riwayat',
             ),
             NavigationDestination(
-              icon: Icon(Icons.pie_chart_outline),
+              icon: const Icon(Icons.pie_chart_outline),
               selectedIcon: Icon(Icons.pie_chart, color: AppColors.green),
               label: 'Ringkasan',
             ),
             NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
+              icon: const Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings, color: AppColors.green),
               label: 'Pengaturan',
             ),
