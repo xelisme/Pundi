@@ -48,3 +48,9 @@ app.*.map.json
 # Project specific
 /refrences/
 /.impeccable/
+
+# AI agent artifacts (opencode/claude/ua) — tidak untuk version control
+.agents/
+.claude/
+.ua/
+skills-lock.json
