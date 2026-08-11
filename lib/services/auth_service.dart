@@ -39,28 +39,40 @@ class AuthService extends ChangeNotifier {
     _isInitializing = true;
     notifyListeners();
 
-    _auth.authStateChanges().listen((User? user) {
-      _user = user;
-      notifyListeners();
-    });
+    try {
+      _auth.authStateChanges().listen((User? user) {
+        _user = user;
+        notifyListeners();
+      });
 
-    _user = _auth.currentUser;
+      _user = _auth.currentUser;
 
-    // Coba restore Google access token via silent sign-in
-    if (_user != null && !kIsWeb) {
-      try {
-        final gUser = await _googleSignIn.signInSilently();
-        if (gUser != null) {
-          final gAuth = await gUser.authentication;
-          _accessToken = gAuth.accessToken;
+      // Coba restore Google access token via silent sign-in.
+      // Dibungkus timeout supaya tidak bisa hang selamanya (penyebab
+      // layar loading permanen di beberapa device).
+      if (_user != null && !kIsWeb) {
+        try {
+          final gUser = await _googleSignIn
+              .signInSilently()
+              .timeout(const Duration(seconds: 8));
+          if (gUser != null) {
+            final gAuth = await gUser.authentication;
+            _accessToken = gAuth.accessToken;
+          }
+        } on TimeoutException catch (_) {
+          debugPrint('Auth: silent sign-in timed out — lanjut tanpa Google token');
+        } catch (e) {
+          debugPrint('Auth: silent sign-in failed (email user or no prior Google session): $e');
         }
-      } catch (e) {
-        debugPrint('Auth: silent sign-in failed (email user or no prior Google session): $e');
       }
+    } catch (e) {
+      debugPrint('Auth: init error: $e');
+    } finally {
+      // PENTING: selalu set false, apa pun yang terjadi, agar UI tidak
+      // terjebak di layar loading / layar hitam.
+      _isInitializing = false;
+      notifyListeners();
     }
-
-    _isInitializing = false;
-    notifyListeners();
   }
 
   Future<User?> signIn() async {
