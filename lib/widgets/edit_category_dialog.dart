@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/transaction.dart';
 import '../utils/app_colors.dart';
 
@@ -32,6 +33,9 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
   late TextEditingController _percentController;
   late TextEditingController _descController;
   late String _selectedColor;
+  
+  String? _nameError;
+  String? _percentError;
 
   @override
   void initState() {
@@ -61,17 +65,22 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     final name = _nameController.text.trim();
     final percent = double.tryParse(_percentController.text.trim());
 
+    setState(() {
+      _nameError = null;
+      _percentError = null;
+    });
+
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama kategori harus diisi')),
-      );
+      setState(() {
+        _nameError = 'Nama kategori harus diisi';
+      });
       return;
     }
 
     if (percent == null || percent <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Persentase harus lebih dari 0')),
-      );
+      setState(() {
+        _percentError = 'Persentase harus lebih dari 0';
+      });
       return;
     }
 
@@ -80,14 +89,13 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
       (n) => n.toLowerCase() == name.toLowerCase() && n != widget.category?.name,
     );
     if (isDuplicate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nama kategori sudah ada')),
-      );
+      setState(() {
+        _nameError = 'Nama kategori sudah ada';
+      });
       return;
     }
 
     final category = AllocationCategory(
-      id: widget.category?.id,
       name: name,
       percentage: percent,
       colorHex: _selectedColor,
@@ -97,114 +105,148 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     Navigator.pop(context, category);
   }
 
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 16),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.5,
+          color: AppColors.textTertiary,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    String? errorText,
+    String? suffix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      suffixText: suffix,
+      errorText: errorText,
+      filled: true,
+      fillColor: AppColors.baseBeige.withValues(alpha: 0.3),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        color: AppColors.textMedium,
+      ),
+      errorStyle: const TextStyle(
+        fontSize: 11,
+        color: AppColors.error,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.category != null;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(isEditing ? 'Edit Kategori' : 'Tambah Kategori'),
+      backgroundColor: AppColors.surfaceWhite,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.all(24),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isEditing ? 'Edit Kategori' : 'Tambah Kategori',
+            style: GoogleFonts.lora(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.03,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Atur alokasi budget Anda',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textTertiary,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            _sectionLabel('Informasi Kategori'),
             TextField(
               controller: _nameController,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Nama Kategori',
-                labelStyle: TextStyle(color: AppColors.textMedium),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
+              decoration: _inputDecoration(
+                label: 'Nama Kategori',
+                errorText: _nameError,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _percentController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Persentase',
-                suffixText: '%',
-                labelStyle: TextStyle(color: AppColors.textMedium),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descController,
-              decoration: InputDecoration(
-                labelText: 'Deskripsi (opsional)',
-                labelStyle: TextStyle(color: AppColors.textMedium),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
+              textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
-            Text('Warna', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textMedium)),
-            const SizedBox(height: 8),
+            TextField(
+              controller: _percentController,
+              decoration: _inputDecoration(
+                label: 'Persentase Alokasi',
+                suffix: '%',
+                errorText: _percentError,
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descController,
+              decoration: _inputDecoration(
+                label: 'Deskripsi (opsional)',
+              ),
+              maxLines: 2,
+            ),
+            _sectionLabel('Pilih Warna'),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 12,
+              runSpacing: 12,
               children: _presetColors.map((hex) {
                 final isSelected = hex == _selectedColor;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColor = hex),
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: _hexToColor(hex),
                       shape: BoxShape.circle,
-                      border: isSelected
-                          ? Border.all(color: Colors.white, width: 3)
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: _hexToColor(hex).withValues(alpha: 0.5),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              )
-                            ]
-                          : null,
+                      border: Border.all(
+                        color: isSelected ? AppColors.textPrimary : AppColors.border,
+                        width: isSelected ? 2.5 : 1,
+                      ),
                     ),
                     child: isSelected
                         ? const Icon(Icons.check, color: Colors.white, size: 20)
@@ -216,21 +258,44 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
           ],
         ),
       ),
+      actionsPadding: const EdgeInsets.all(16),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Batal', style: TextStyle(color: AppColors.textMedium)),
-        ),
-        ElevatedButton(
-          onPressed: _save,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textMedium,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text('Simpan'),
+          child: const Text(
+            'BATAL',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: _save,
+          style: TextButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text(
+            'SIMPAN',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ],
     );
