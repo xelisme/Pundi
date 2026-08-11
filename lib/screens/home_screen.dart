@@ -149,17 +149,20 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: AppColors.textTertiary,
+            letterSpacing: 0.8,
+            fontSize: 10,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount.toDouble())}',
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w600,
+            letterSpacing: -0.02,
             color: color,
           ),
         ),
@@ -214,22 +217,27 @@ class _HomeScreenState extends State<HomeScreen> {
             // Refined header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'BudgetAI',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+                      style: GoogleFonts.lora(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.03,
+                        height: 1.1,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      'Alokasi Anggaran',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      'ALOKASI ANGGARAN',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppColors.textTertiary,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -240,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Grand total summary card
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                 child: Consumer<BudgetRepository>(
                   builder: (context, repo, _) {
                     int totalIncome = 0;
@@ -259,27 +267,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     return Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.shadowColor,
-                            blurRadius: 12,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1),
                       ),
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Total Keseluruhan',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            'TOTAL KESELURUHAN',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: AppColors.textTertiary,
-                              letterSpacing: 0.5,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Row(
                             children: [
                               Expanded(
@@ -289,6 +292,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   amount: totalIncome,
                                   color: AppColors.income,
                                 ),
+                              ),
+                              Container(
+                                width: 1,
+                                height: 40,
+                                color: AppColors.divider,
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -301,23 +309,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Divider(color: AppColors.divider, height: 1),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
                                 'Sisa Bersih',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.textSecondary,
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: AppColors.textTertiary,
                                 ),
                               ),
                               Text(
                                 'Rp ${_fmt(net.toDouble())}',
                                 style: GoogleFonts.lora(
-                                  fontSize: 22,
+                                  fontSize: 26,
                                   fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.03,
                                   color: net >= 0 ? AppColors.income : AppColors.expense,
                                 ),
                               ),
@@ -359,10 +370,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.border, width: 1),
       ),
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       child: Row(
         children: [
           Expanded(
@@ -403,22 +414,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Container(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowColor,
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1),
                   ),
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
                       Text(
-                        'Alokasi Otomatis',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textPrimary,
+                        'ALOKASI OTOMATIS',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textTertiary,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -473,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surfaceWhite,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border, width: 1),
               ),
               padding: const EdgeInsets.all(24),
@@ -481,35 +488,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Masukkan Nominal',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                    'NOMINAL PEMASUKAN',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _inputController,
-                    keyboardType: TextInputType.number,
-                    style: GoogleFonts.lora(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.02,
-                      color: AppColors.textPrimary,
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.baseBeige.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border, width: 1),
                     ),
-                    decoration: InputDecoration(
-                      hintText: '5000000',
-                      hintStyle: GoogleFonts.lora(
-                        fontSize: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _inputController,
+                      keyboardType: TextInputType.number,
+                      style: GoogleFonts.lora(
+                        fontSize: 28,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.02,
-                        color: AppColors.textTertiary,
+                        color: AppColors.textPrimary,
                       ),
-                      filled: true,
-                      fillColor: Colors.transparent,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
+                      decoration: InputDecoration(
+                        hintText: '5000000',
+                        hintStyle: GoogleFonts.lora(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.02,
+                          color: AppColors.textTertiary,
+                        ),
+                        filled: false,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -521,6 +537,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
                   
+                  Text(
+                    'POS ALOKASI',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // Dropdown pilihan pos untuk pemasukan
                   Consumer<BudgetRepository>(
                     builder: (context, repo, _) {
@@ -529,27 +554,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       
                       return Container(
                         decoration: BoxDecoration(
-                          color: AppColors.baseBeige,
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.baseBeige.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.border),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: DropdownButton<String>(
-                          value: selected,
-                          isExpanded: true,
-                          underline: const SizedBox.shrink(),
-                          items: options.map((opt) {
-                            return DropdownMenuItem(
-                              value: opt,
-                              child: Text(
-                                opt,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            setState(() => _selectedIncomeTarget = val);
-                          },
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selected,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                            items: options.map((opt) {
+                              return DropdownMenuItem(
+                                value: opt,
+                                child: Text(
+                                  opt,
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setState(() => _selectedIncomeTarget = val);
+                            },
+                          ),
                         ),
                       );
                     },
@@ -561,16 +590,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.textTertiary,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
+                    height: 52,
+                    child: TextButton(
                       onPressed: () => _submitIncome(context),
-                      style: ElevatedButton.styleFrom(
+                      style: TextButton.styleFrom(
                         backgroundColor: AppColors.income,
                         foregroundColor: AppColors.surfaceWhite,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text('Catat Pemasukan'),
+                      child: Text(
+                        'Catat Pemasukan',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.surfaceWhite,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -589,87 +627,97 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowColor,
-                blurRadius: 12,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Catat Pengeluaran',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
+                'CATAT PENGELUARAN',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textTertiary,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 24),
 
               // Amount input
               Text(
-                'Nominal',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.textSecondary,
+                'NOMINAL',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textTertiary,
+                  letterSpacing: 0.8,
+                  fontSize: 10,
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _inputController,
-                keyboardType: TextInputType.number,
-                style: GoogleFonts.lora(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.02,
-                  color: AppColors.textPrimary,
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border, width: 1),
                 ),
-                decoration: InputDecoration(
-                  hintText: '250000',
-                  hintStyle: GoogleFonts.lora(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _inputController,
+                  keyboardType: TextInputType.number,
+                  style: GoogleFonts.lora(
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.02,
-                    color: AppColors.textTertiary,
+                    color: AppColors.textPrimary,
                   ),
-                  filled: true,
-                  fillColor: AppColors.baseBeige.withValues(alpha: 0.3),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.border, width: 1),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.border, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                  decoration: InputDecoration(
+                    hintText: '250000',
+                    hintStyle: GoogleFonts.lora(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.02,
+                      color: AppColors.textTertiary,
+                    ),
+                    filled: false,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Merchant
               Text(
-                'Merchant (opsional)',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.textSecondary,
+                'MERCHANT (OPSIONAL)',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textTertiary,
+                  letterSpacing: 0.8,
+                  fontSize: 10,
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _merchantController,
-                style: Theme.of(context).textTheme.bodyLarge,
-                decoration: InputDecoration(
-                  hintText: 'Nama toko',
-                  filled: true,
-                  fillColor: AppColors.baseBeige.withValues(alpha: 0.3),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border, width: 1),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _merchantController,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Nama toko',
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
 
@@ -677,20 +725,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Items
               Text(
-                'Item (opsional)',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.textSecondary,
+                'ITEM (OPSIONAL)',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textTertiary,
+                  letterSpacing: 0.8,
+                  fontSize: 10,
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _itemsController,
-                maxLines: 2,
-                style: Theme.of(context).textTheme.bodyLarge,
-                decoration: InputDecoration(
-                  hintText: 'Deskripsi pembelian',
-                  filled: true,
-                  fillColor: AppColors.baseBeige.withValues(alpha: 0.3),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.baseBeige.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border, width: 1),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _itemsController,
+                  maxLines: 2,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Deskripsi pembelian',
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
 
@@ -707,9 +769,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Dibebankan ke',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                        'DIBEBANKAN KE',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textTertiary,
+                          letterSpacing: 0.8,
+                          fontSize: 10,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -743,40 +807,60 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
 
               // Date picker
+              Text(
+                'TANGGAL STRUK',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.textTertiary,
+                  letterSpacing: 0.8,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickDate,
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
-                    color: AppColors.baseBeige.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.baseBeige.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.border, width: 1),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 20, color: AppColors.textSecondary),
+                      Icon(Icons.calendar_today, size: 16, color: AppColors.textSecondary),
                       const SizedBox(width: 12),
                       Text(
                         DateFormat('dd MMM yyyy', 'id_ID').format(_receiptDate),
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
               // Submit button
               SizedBox(
-                height: 56,
-                child: ElevatedButton(
+                height: 52,
+                child: TextButton(
                   onPressed: () => _submitExpense(context),
-                  style: ElevatedButton.styleFrom(
+                  style: TextButton.styleFrom(
                     backgroundColor: AppColors.expense,
                     foregroundColor: AppColors.surfaceWhite,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text('Catat Pengeluaran'),
+                  child: Text(
+                    'Catat Pengeluaran',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.surfaceWhite,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -805,19 +889,21 @@ class _ModeButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
-          label,
+          label.toUpperCase(),
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: isSelected ? color : AppColors.textTertiary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 10,
+            letterSpacing: 0.8,
           ),
         ),
       ),
@@ -843,22 +929,24 @@ class _CategoryChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : AppColors.baseBeige.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(9999),
           border: Border.all(
             color: isSelected ? color : AppColors.border,
-            width: isSelected ? 1.5 : 1,
+            width: 1,
           ),
         ),
         child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: isSelected ? color : AppColors.textSecondary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 10,
+            letterSpacing: 0.5,
           ),
         ),
       ),

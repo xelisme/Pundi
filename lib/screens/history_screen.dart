@@ -252,22 +252,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 // Header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Riwayat',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 0.5,
+                          style: GoogleFonts.lora(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.03,
+                            height: 1.1,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          '${history.length} transaksi',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          '${history.length} TRANSAKSI'.toUpperCase(),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: AppColors.textTertiary,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -315,7 +320,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.border, width: 1),
                         ),
                         child: Column(

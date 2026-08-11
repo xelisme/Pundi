@@ -59,22 +59,27 @@ class SettingsScreen extends StatelessWidget {
             // Header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Pengaturan',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
+                      style: GoogleFonts.lora(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.03,
+                        height: 1.1,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
-                      'Kelola kategori alokasi',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      'KELOLA KATEGORI ALOKASI',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: AppColors.textTertiary,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -91,12 +96,12 @@ class SettingsScreen extends StatelessWidget {
                     final isSignedIn = auth.isSignedIn;
 
                     if (!isSignedIn) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border, width: 1),
-                        ),
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
                         padding: const EdgeInsets.all(20),
                         child: Row(
                           children: [
@@ -157,7 +162,7 @@ class SettingsScreen extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.border, width: 1),
                       ),
                       padding: const EdgeInsets.all(20),
@@ -249,7 +254,7 @@ class SettingsScreen extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.border, width: 1),
                       ),
                       child: Column(
@@ -264,23 +269,40 @@ class SettingsScreen extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Kategori Alokasi',
-                                        style: Theme.of(context).textTheme.titleLarge,
+                                        'KATEGORI ALOKASI',
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: AppColors.textPrimary,
+                                          letterSpacing: 1.2,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
-                                        '${repo.categories.length} kategori',
-                                        style: Theme.of(context).textTheme.bodySmall,
+                                        '${repo.categories.length} KATEGORI'.toUpperCase(),
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: AppColors.textTertiary,
+                                          fontSize: 10,
+                                          letterSpacing: 0.8,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                TextButton.icon(
+                                TextButton(
                                   onPressed: () => _showEditDialog(context, null),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Tambah'),
                                   style: TextButton.styleFrom(
                                     foregroundColor: AppColors.accent,
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'TAMBAH',
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: AppColors.accent,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -372,7 +394,7 @@ class SettingsScreen extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border, width: 1),
                   ),
                   child: Column(
@@ -438,7 +460,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           'Reset Kategori?',
           style: Theme.of(context).textTheme.titleLarge,
@@ -606,7 +628,7 @@ class _SettingsAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
