@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default: deny semua akses
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // BudgetAI collections — hanya authenticated user yang bisa akses data sendiri
+    match /users/{userId} {
+      // User bisa baca/write data mereka sendiri saja
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Categories subcollection
+      match /categories/{categoryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // History subcollection
+      match /history/{historyId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Legacy: Support top-level collections for backwards compatibility
+    // (hanya jika data disimpan langsung di root)
+    match /categories/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /history/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
