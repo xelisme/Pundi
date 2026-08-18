@@ -57,3 +57,6 @@ skills-lock.json
 
 # Local signing config (contains keystore passwords - DO NOT COMMIT)
 android/local.properties
+
+# graphify output (not part of app)
+graphify-out/
