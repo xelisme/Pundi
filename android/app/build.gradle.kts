@@ -4,6 +4,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+// Read secrets from local.properties (gitignored) so they are NOT hardcoded in this file.
+val localProperties = Properties().apply {
+    val localFile = File(rootProject.projectDir, "local.properties")
+    if (localFile.exists()) {
+        FileInputStream(localFile).use { load(it) }
+    }
+}
+
 android {
     namespace = "com.hyperbudget.hyper_budget_flutter"
     compileSdk = 36
@@ -16,19 +27,11 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = file("${projectDir}/upload-keystore.jks")
-            storeFile = keystoreFile
-            // Passwords are read from local.properties (NOT hardcoded) to avoid leaking secrets.
-            // Add these lines to android/local.properties:
-            //   KEYSTORE_PASSWORD=your_store_password
-            //   KEY_ALIAS=upload
-            //   KEY_PASSWORD=your_key_password
-            val localProps = java.util.Properties().apply {
-                file("${projectDir}/local.properties").inputStream().use { load(it) }
-            }
-            storePassword = localProps.getProperty("KEYSTORE_PASSWORD")
-            keyAlias = localProps.getProperty("KEY_ALIAS") ?: "upload"
-            keyPassword = localProps.getProperty("KEY_PASSWORD")
+            storeFile = file("${projectDir}/upload-keystore.jks")
+            // Passwords come from local.properties (KEYSTORE_PASSWORD / KEY_PASSWORD / KEY_ALIAS), NOT from source.
+            storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
+            keyAlias = localProperties.getProperty("KEY_ALIAS") ?: "upload"
+            keyPassword = localProperties.getProperty("KEY_PASSWORD")
         }
     }
 
