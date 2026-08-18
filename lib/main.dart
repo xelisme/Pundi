@@ -4,16 +4,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'repositories/budget_repository.dart';
-import 'services/auth_service.dart';
-import 'services/sheets_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/auth_wrapper.dart';
 import 'utils/app_colors.dart';
 
 /// Tulis error ke file di disk agar bisa dibaca walau device tidak nyambung ADB.
@@ -77,73 +72,29 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inisialisasi Firebase. Di Android, FirebaseInitProvider dari library
-    // otomatis membuat default app di native level sebelum Dart sempat
-    // mencatatnya di Firebase.apps — sehingga guard `isEmpty` saja tidak cukup.
-    // Tangkap error "duplicate-app"/"too-many-apps" dan abaikan, karena app
-    // default memang sudah siap dipakai oleh semua plugin Firebase.
-    try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      }
-    } on FirebaseException catch (e) {
-      if (e.code == 'duplicate-app' || e.code == 'too-many-apps') {
-        debugPrint('Firebase: default app sudah ada (native), lanjut.');
-      } else {
-        rethrow;
-      }
-    }
     await initializeDateFormatting('id_ID', null);
 
-    // Inisialisasi semua service di sini, SEBELUM runApp,
-    // agar providers sudah siap saat widget tree pertama kali dibangun.
-    final authService = AuthService();
-    final sheetsService = SheetsService(authService);
-    final budgetRepository = BudgetRepository(sheetsService: sheetsService);
-
-    // Init auth (dengan timeout built-in di signInSilently).
-    await authService.init();
-    // Init local storage.
+    // Inisialisasi repository lokal (SharedPreferences).
+    final budgetRepository = BudgetRepository();
     await budgetRepository.init();
-    await sheetsService.loadLastSyncTime();
-
-    // Kalau sudah login, load data dari cloud di background setelah app muncul.
-    if (authService.isSignedIn) {
-      budgetRepository.loadFromCloud(); // sengaja tidak di-await
-    }
-
-    // Listener untuk auto-sync saat user sign-in setelah app berjalan.
-    authService.addListener(() {
-      if (authService.isSignedIn) {
-        budgetRepository.loadFromCloud();
-      }
-    });
 
     runApp(
       BudgetAIApp(
-        authService: authService,
-        sheetsService: sheetsService,
         budgetRepository: budgetRepository,
       ),
     );
   } catch (e, stack) {
-    // Error di init (Firebase, dll) → layar merah + log file.
+    // Error di init → layar merah + log file.
     await _writeCrashLog('init', e, stack);
     runApp(_buildErrorScreen('Init gagal: $e', stack));
   }
 }
 
 class BudgetAIApp extends StatelessWidget {
-  final AuthService authService;
-  final SheetsService sheetsService;
   final BudgetRepository budgetRepository;
 
   const BudgetAIApp({
     super.key,
-    required this.authService,
-    required this.sheetsService,
     required this.budgetRepository,
   });
 
@@ -151,8 +102,6 @@ class BudgetAIApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authService),
-        ChangeNotifierProvider.value(value: sheetsService),
         ChangeNotifierProvider.value(value: budgetRepository),
       ],
       child: MaterialApp(
@@ -386,7 +335,7 @@ class BudgetAIApp extends StatelessWidget {
           Locale('en', 'US'),
         ],
         locale: const Locale('id', 'ID'),
-        home: const AuthWrapper(),
+        home: const MainNavigation(),
       ),
     );
   }

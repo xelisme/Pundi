@@ -3,13 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
-import '../services/sheets_service.dart';
 
 class BudgetRepository extends ChangeNotifier {
   static const _keyCategories = 'key_categories_v1';
   static const _keyHistory = 'key_history_v1';
-
-  final SheetsService? _sheetsService;
 
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
@@ -18,47 +15,10 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
 
-  BudgetRepository({this._sheetsService});
-
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _loadCategoriesLocal();
     _loadHistoryLocal();
-  }
-
-  Future<void> loadFromCloud() async {
-    if (_sheetsService == null) return;
-    notifyListeners();
-
-    final data = await _sheetsService.downloadData();
-    if (data != null) {
-      try {
-        final cats = (data['categories'] as List<dynamic>?)
-                ?.map((e) => AllocationCategory.fromJson(e as Map<String, dynamic>))
-                .toList();
-        if (cats != null && cats.isNotEmpty) {
-          _categories = cats;
-          _saveCategoriesLocal();
-        }
-
-        final hist = (data['history'] as List<dynamic>?)
-                ?.map((e) => TransactionRecord.fromJson(e as Map<String, dynamic>))
-                .toList();
-        if (hist != null) {
-          _history = hist;
-          _saveHistoryLocal();
-        }
-      } catch (e) {
-        debugPrint('BudgetRepository: loadFromCloud parse error: $e');
-      }
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> _saveToCloud() async {
-    if (_sheetsService == null) return;
-    await _sheetsService.syncWithRetry(exportAllData());
   }
 
   void _loadCategoriesLocal() {
@@ -87,7 +47,6 @@ class BudgetRepository extends ChangeNotifier {
   void saveCategories(List<AllocationCategory> list) {
     _categories = list;
     _saveCategoriesLocal();
-    _saveToCloud();
     notifyListeners();
   }
 
@@ -110,10 +69,6 @@ class BudgetRepository extends ChangeNotifier {
     _prefs?.setString(_keyHistory, json);
   }
 
-  void _triggerSync() {
-    _saveToCloud();
-  }
-
   Map<String, dynamic> exportAllData() {
     return {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
@@ -125,7 +80,6 @@ class BudgetRepository extends ChangeNotifier {
   void recordTransaction(TransactionRecord record) {
     _history = [record, ..._history];
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -164,35 +118,30 @@ class BudgetRepository extends ChangeNotifier {
     );
     _history = [record, ..._history];
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
   void deleteTransaction(String transactionId) {
     _history = _history.where((r) => r.id != transactionId).toList();
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
   void clearHistory() {
     _history = [];
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
   void addCategory(AllocationCategory category) {
     _categories = [..._categories, category];
     _saveCategoriesLocal();
-    _triggerSync();
     notifyListeners();
   }
 
   void updateCategory(String id, AllocationCategory updated) {
     _categories = _categories.map((c) => c.id == id ? updated : c).toList();
     _saveCategoriesLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -200,7 +149,6 @@ class BudgetRepository extends ChangeNotifier {
     if (_categories.length <= 1) return;
     _categories = _categories.where((c) => c.id != id).toList();
     _saveCategoriesLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -240,7 +188,6 @@ class BudgetRepository extends ChangeNotifier {
       chargedTo: newChargedTo,
     );
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -303,14 +250,12 @@ class BudgetRepository extends ChangeNotifier {
       chargedTo: chargedTo,
     );
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
   void resetToDefaults() {
     _categories = _getDefaultCategories();
     _saveCategoriesLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -319,7 +264,6 @@ class BudgetRepository extends ChangeNotifier {
     _history = [];
     _saveCategoriesLocal();
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
   }
 
@@ -457,7 +401,6 @@ class BudgetRepository extends ChangeNotifier {
     }
     
     _saveHistoryLocal();
-    _triggerSync();
     notifyListeners();
     return imported;
   }
