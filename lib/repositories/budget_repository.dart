@@ -322,7 +322,12 @@ class BudgetRepository extends ChangeNotifier {
   }
 
   int importFromCsv(String csvContent) {
-    final lines = csvContent.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final lines = csvContent
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .toList();
     if (lines.length < 2) return 0;
     
     int imported = 0;
@@ -353,11 +358,22 @@ class BudgetRepository extends ChangeNotifier {
       final cleanItems = items.replaceAll(RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false), '');
       
       if (isIncome) {
-        final splits = _categories.map((cat) {
-          final allocated = (total * cat.percentage / 100).roundToDouble();
-          return CategorySplitResult(category: cat, allocatedAmount: allocated);
-        }).toList();
-        
+        List<CategorySplitResult> splits;
+        if (chargedTo == allCategoriesLabel || chargedTo.isEmpty) {
+          // Only "Seluruhnya" income is split by percentage
+          splits = _categories.map((cat) {
+            final allocated = (total * cat.percentage / 100).roundToDouble();
+            return CategorySplitResult(category: cat, allocatedAmount: allocated);
+          }).toList();
+        } else {
+          // Explicit category label -> full amount to that category
+          final category =
+              _categories.where((c) => c.name == chargedTo).firstOrNull;
+          splits = category != null
+              ? [CategorySplitResult(category: category, allocatedAmount: total)]
+              : <CategorySplitResult>[];
+        }
+
         final record = TransactionRecord(
           rawInput: total.toString(),
           totalAmount: total,
