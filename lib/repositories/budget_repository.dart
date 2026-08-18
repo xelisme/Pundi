@@ -3,13 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
-import '../services/drive_service.dart';
+import '../services/sheets_service.dart';
 
 class BudgetRepository extends ChangeNotifier {
   static const _keyCategories = 'key_categories_v1';
   static const _keyHistory = 'key_history_v1';
 
-  final DriveService? _driveService;
+  final SheetsService? _sheetsService;
 
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
@@ -18,7 +18,7 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
 
-  BudgetRepository({this._driveService});
+  BudgetRepository({this._sheetsService});
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -27,10 +27,10 @@ class BudgetRepository extends ChangeNotifier {
   }
 
   Future<void> loadFromCloud() async {
-    if (_driveService == null) return;
+    if (_sheetsService == null) return;
     notifyListeners();
 
-    final data = await _driveService.downloadData();
+    final data = await _sheetsService.downloadData();
     if (data != null) {
       try {
         final cats = (data['categories'] as List<dynamic>?)
@@ -57,8 +57,8 @@ class BudgetRepository extends ChangeNotifier {
   }
 
   Future<void> _saveToCloud() async {
-    if (_driveService == null) return;
-    await _driveService.syncWithRetry(exportAllData());
+    if (_sheetsService == null) return;
+    await _sheetsService.syncWithRetry(exportAllData());
   }
 
   void _loadCategoriesLocal() {

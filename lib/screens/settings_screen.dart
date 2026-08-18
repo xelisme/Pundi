@@ -7,7 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../services/auth_service.dart';
-import '../services/drive_service.dart';
+import '../services/sheets_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/edit_category_dialog.dart';
 
@@ -28,7 +28,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Keluar?'),
-        content: const Text('Data Anda akan tetap tersimpan di Google Drive.'),
+        content: const Text('Data Anda akan tetap tersimpan di Google Spreadsheet.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -106,8 +106,8 @@ class SettingsScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: Consumer2<AuthService, DriveService>(
-                  builder: (context, auth, drive, _) {
+                child: Consumer2<AuthService, SheetsService>(
+                  builder: (context, auth, sheets, _) {
                     final isSignedIn = auth.isSignedIn;
                     final isGoogleUser = auth.isGoogleUser;
 
@@ -139,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Data tersimpan lokal. Login untuk sync ke Drive.',
+                                    'Data tersimpan lokal. Login untuk sync ke Spreadsheet.',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppColors.textTertiary,
                                     ),
@@ -204,7 +204,7 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Login dengan Google untuk aktifkan sync Drive.',
+                                    'Login dengan Google untuk aktifkan sync Spreadsheet.',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppColors.textTertiary,
                                     ),
@@ -236,9 +236,9 @@ class SettingsScreen extends StatelessWidget {
                       );
                     }
 
-                    final isSyncing = drive.isSyncing;
-                    final lastSyncError = drive.lastSyncError;
-                    final lastSyncTime = drive.lastSyncTime;
+                    final isSyncing = sheets.isSyncing;
+                    final lastSyncError = sheets.lastSyncError;
+                    final lastSyncTime = sheets.lastSyncTime;
 
                     return Container(
                       decoration: BoxDecoration(
@@ -266,7 +266,7 @@ class SettingsScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Google Drive',
+                                      'Google Spreadsheet',
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w600,
                                       ),
