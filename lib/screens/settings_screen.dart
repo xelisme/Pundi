@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../services/auth_service.dart';
@@ -722,31 +724,61 @@ class SettingsScreen extends StatelessWidget {
     final repo = context.read<BudgetRepository>();
     final csv = repo.exportToCsv();
     
-    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final defaultName = 'hyper_budget_$timestamp.csv';
+    if (csv.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Tidak ada data untuk diekspor'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+      return;
+    }
     
-    final path = await FilePicker.saveFile(
-      dialogTitle: 'Simpan CSV',
-      fileName: defaultName,
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
-    
-    if (path == null) return;
-    
-    final file = File(path);
-    await file.writeAsString(csv);
-    
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('CSV berhasil diekspor: ${repo.history.length} transaksi'),
-          backgroundColor: AppColors.income,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
+    try {
+      // Get temporary directory
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'hyper_budget_$timestamp.csv';
+      final filePath = '${tempDir.path}/$fileName';
+      
+      // Write CSV to temporary file
+      final file = File(filePath);
+      await file.writeAsString(csv);
+      
+      // Share the file using share_plus
+      final result = await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Export BudgetAI - ${repo.history.length} transaksi',
       );
+      
+      if (context.mounted && result.status == ShareResultStatus.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('CSV berhasil diekspor: ${repo.history.length} transaksi'),
+            backgroundColor: AppColors.income,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengekspor CSV: $e'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     }
   }
 
