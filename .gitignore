@@ -54,3 +54,6 @@ app.*.map.json
 .claude/
 .ua/
 skills-lock.json
+
+# Local signing config (contains keystore passwords - DO NOT COMMIT)
+android/local.properties

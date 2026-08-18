@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -17,10 +16,19 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("${projectDir}/upload-keystore.jks")
-            storePassword = "budgetai123"
-            keyAlias = "upload"
-            keyPassword = "budgetai123"
+            val keystoreFile = file("${projectDir}/upload-keystore.jks")
+            storeFile = keystoreFile
+            // Passwords are read from local.properties (NOT hardcoded) to avoid leaking secrets.
+            // Add these lines to android/local.properties:
+            //   KEYSTORE_PASSWORD=your_store_password
+            //   KEY_ALIAS=upload
+            //   KEY_PASSWORD=your_key_password
+            val localProps = java.util.Properties().apply {
+                file("${projectDir}/local.properties").inputStream().use { load(it) }
+            }
+            storePassword = localProps.getProperty("KEYSTORE_PASSWORD")
+            keyAlias = localProps.getProperty("KEY_ALIAS") ?: "upload"
+            keyPassword = localProps.getProperty("KEY_PASSWORD")
         }
     }
 
