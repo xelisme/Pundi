@@ -91,3 +91,33 @@ When resuming work on the sync feature:
 
 4. **Verify Drive API is Enabled**:
    Ensure the **Google Drive API** is enabled in the Google Cloud Console API Library for project `budgetai-7145b`.
+
+---
+
+## Manual Console Steps Remaining
+
+After deploying the code changes above, the following manual steps must be completed in Google Cloud Console:
+
+1. **Enable Google Drive API**:
+   - Go to [Google Cloud Console API Library](https://console.cloud.google.com/apis/library)
+   - Select project `budgetai-7145b`
+   - Search for "Google Drive API"
+   - Click "Enable" if not already enabled
+
+2. **Add Drive Scope to OAuth Consent Screen**:
+   - Go to [APIs & Services → OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+   - Select project `budgetai-7145b`
+   - Click "Edit App"
+   - In "Scopes" section, click "Add or Remove Scopes"
+   - Add scope: `https://www.googleapis.com/auth/drive.file`
+   - Save changes
+
+3. **Test User Configuration** (if app is in Testing status):
+   - In OAuth consent screen, verify test users are added under "Test users"
+   - Only test users can authorize the app while in Testing status
+   - Consider publishing the app for broader access (requires verification for restricted scopes)
+
+4. **Verify OAuth Credentials**:
+   - Go to [APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials)
+   - Ensure OAuth 2.0 Client IDs exist for your platforms (Web, Android, iOS)
+   - Download/verify `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) match the project
