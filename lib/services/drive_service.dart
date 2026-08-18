@@ -36,13 +36,20 @@ class DriveService extends ChangeNotifier {
   Future<bool> _initDriveApi() async {
     try {
       final client = _authService.authenticatedClient;
-      if (client == null) return false;
+      if (client == null) {
+        _lastSyncError = 'No authenticated client available - missing OAuth token';
+        debugPrint('Drive: _initDriveApi failed: $_lastSyncError');
+        notifyListeners();
+        return false;
+      }
 
       _driveApi = drive.DriveApi(client);
       return true;
     } catch (e) {
-      debugPrint('Drive: _initDriveApi failed: $e');
+      _lastSyncError = 'Failed to initialize Drive API: $e';
+      debugPrint('Drive: _initDriveApi failed: $_lastSyncError');
       _driveApi = null;
+      notifyListeners();
       return false;
     }
   }
