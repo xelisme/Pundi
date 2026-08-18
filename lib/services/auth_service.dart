@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'https://www.googleapis.com/auth/drive.file'],
+    scopes: ['email', 'https://www.googleapis.com/auth/spreadsheets'],
   );
 
   User? _user;

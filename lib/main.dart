@@ -8,7 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'repositories/budget_repository.dart';
 import 'services/auth_service.dart';
-import 'services/drive_service.dart';
+import 'services/sheets_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
@@ -100,14 +100,14 @@ void main() async {
     // Inisialisasi semua service di sini, SEBELUM runApp,
     // agar providers sudah siap saat widget tree pertama kali dibangun.
     final authService = AuthService();
-    final driveService = DriveService(authService);
-    final budgetRepository = BudgetRepository(driveService: driveService);
+    final sheetsService = SheetsService(authService);
+    final budgetRepository = BudgetRepository(sheetsService: sheetsService);
 
     // Init auth (dengan timeout built-in di signInSilently).
     await authService.init();
     // Init local storage.
     await budgetRepository.init();
-    await driveService.loadLastSyncTime();
+    await sheetsService.loadLastSyncTime();
 
     // Kalau sudah login, load data dari cloud di background setelah app muncul.
     if (authService.isSignedIn) {
@@ -124,7 +124,7 @@ void main() async {
     runApp(
       BudgetAIApp(
         authService: authService,
-        driveService: driveService,
+        sheetsService: sheetsService,
         budgetRepository: budgetRepository,
       ),
     );
@@ -137,13 +137,13 @@ void main() async {
 
 class BudgetAIApp extends StatelessWidget {
   final AuthService authService;
-  final DriveService driveService;
+  final SheetsService sheetsService;
   final BudgetRepository budgetRepository;
 
   const BudgetAIApp({
     super.key,
     required this.authService,
-    required this.driveService,
+    required this.sheetsService,
     required this.budgetRepository,
   });
 
@@ -152,7 +152,7 @@ class BudgetAIApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authService),
-        ChangeNotifierProvider.value(value: driveService),
+        ChangeNotifierProvider.value(value: sheetsService),
         ChangeNotifierProvider.value(value: budgetRepository),
       ],
       child: MaterialApp(
