@@ -8,6 +8,8 @@ import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
 import '../widgets/radial_allocation_viz.dart';
 import '../widgets/duolingo_button.dart';
+import 'history_screen.dart';
+import 'summary_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -145,8 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required int amount,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -168,6 +171,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+    );
+
+    if (onTap == null) return content;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: content,
     );
   }
 
@@ -309,6 +320,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   label: 'Pemasukan',
                                   amount: totalIncome,
                                   color: AppColors.income,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => const HistoryScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                               Container(
@@ -323,6 +341,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   label: 'Pengeluaran',
                                   amount: totalExpenses,
                                   color: AppColors.expense,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => const HistoryScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -330,27 +355,37 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 20),
                           Divider(color: AppColors.divider, height: 1),
                           const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                'Sisa Bersih',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: AppColors.textTertiary,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const SummaryScreen(),
                                 ),
-                              ),
-                              Text(
-                                'Rp ${_fmt(net.toDouble())}',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.03,
-                                  color: net >= 0 ? AppColors.income : AppColors.expense,
+                              );
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  'Sisa Bersih',
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: AppColors.textTertiary,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  'Rp ${_fmt(net.toDouble())}',
+                                  style: GoogleFonts.nunito(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.03,
+                                    color: net >= 0 ? AppColors.income : AppColors.expense,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
