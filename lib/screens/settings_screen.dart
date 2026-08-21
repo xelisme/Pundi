@@ -492,7 +492,7 @@ class SettingsScreen extends StatelessWidget {
       // Share the file using share_plus
       final result = await Share.shareXFiles(
         [XFile(filePath)],
-        text: 'Export BudgetAI - ${repo.history.length} transaksi',
+        text: 'Export Pundi - ${repo.history.length} transaksi',
       );
       
       if (context.mounted && result.status == ShareResultStatus.success) {

@@ -73,6 +73,10 @@ class TransactionRecord {
   final String items;
   final int receiptDate;
   final String? chargedTo;
+  // Frozen allocation percentages (category name -> percentage) captured at
+  // creation time. Only meaningful for "Seluruhnya" transactions; explicit
+  // category transactions ignore this entirely.
+  final Map<String, double> allocationSnapshot;
 
   TransactionRecord({
     String? id,
@@ -85,6 +89,7 @@ class TransactionRecord {
     this.items = '',
     int? receiptDate,
     this.chargedTo,
+    this.allocationSnapshot = const {},
   })  : id = id ?? _uuid.v4(),
         timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch,
         receiptDate = receiptDate ?? DateTime.now().millisecondsSinceEpoch;
@@ -100,6 +105,7 @@ class TransactionRecord {
         'items': items,
         'receiptDate': receiptDate,
         'chargedTo': chargedTo,
+        'allocationSnapshot': allocationSnapshot,
       };
 
   factory TransactionRecord.fromJson(Map<String, dynamic> json) =>
@@ -121,5 +127,8 @@ class TransactionRecord {
         items: json['items'] as String? ?? '',
         receiptDate: json['receiptDate'] as int?,
         chargedTo: json['chargedTo'] as String?,
+        allocationSnapshot: (json['allocationSnapshot'] as Map? ?? {}).map(
+          (k, v) => MapEntry(k as String, (v as num).toDouble()),
+        ),
       );
 }

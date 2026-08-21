@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'BudgetAI',
+                            'Pundi',
                             style: GoogleFonts.nunito(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,

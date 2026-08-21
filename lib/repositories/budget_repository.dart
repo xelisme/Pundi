@@ -83,6 +83,28 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Build a frozen snapshot of current category percentages (name -> pct).
+  Map<String, double> _snapshotPercentages() =>
+      {for (final c in _categories) c.name: c.percentage};
+
+  // Split an amount across categories using a FROZEN percentage snapshot,
+  // not the currently-active _categories. Explicit-label transactions must
+  // NOT call this (they go 100% to one category).
+  List<CategorySplitResult> _splitBySnapshot(
+      double amount, Map<String, double> snapshot) {
+    final result = <CategorySplitResult>[];
+    for (final entry in snapshot.entries) {
+      final cat =
+          _categories.where((c) => c.name == entry.key).firstOrNull;
+      if (cat == null) continue; // category was removed since; skip
+      final allocated =
+          (amount * entry.value / 100).roundToDouble();
+      result.add(CategorySplitResult(
+          category: cat, allocatedAmount: allocated));
+    }
+    return result;
+  }
+
   void recordExpense({
     required String merchantName,
     required String items,
@@ -91,13 +113,12 @@ class BudgetRepository extends ChangeNotifier {
     int? receiptDate,
   }) {
     List<CategorySplitResult> splits;
+    Map<String, double> snapshot = const {};
 
     if (chargedToCategory == allCategoriesLabel) {
-      // Split across all categories by percentage
-      splits = _categories.map((cat) {
-        final allocated = (amount * cat.percentage / 100).roundToDouble();
-        return CategorySplitResult(category: cat, allocatedAmount: allocated);
-      }).toList();
+      // "Seluruhnya" -> freeze current percentages at creation time.
+      snapshot = _snapshotPercentages();
+      splits = _splitBySnapshot(amount, snapshot);
     } else {
       final category =
           _categories.where((c) => c.name == chargedToCategory).firstOrNull;
@@ -115,6 +136,7 @@ class BudgetRepository extends ChangeNotifier {
       items: items,
       receiptDate: receiptDate ?? DateTime.now().millisecondsSinceEpoch,
       chargedTo: chargedToCategory,
+      allocationSnapshot: snapshot,
     );
     _history = [record, ..._history];
     _saveHistoryLocal();
@@ -160,10 +182,8 @@ class BudgetRepository extends ChangeNotifier {
     List<CategorySplitResult> splits;
 
     if (newChargedTo == allCategoriesLabel) {
-      splits = _categories.map((cat) {
-        final allocated = (old.totalAmount * cat.percentage / 100).roundToDouble();
-        return CategorySplitResult(category: cat, allocatedAmount: allocated);
-      }).toList();
+      // Re-split using the transaction's OWN frozen snapshot, not current categories.
+      splits = _splitBySnapshot(old.totalAmount, old.allocationSnapshot);
     } else {
       final category =
           _categories.where((c) => c.name == newChargedTo).firstOrNull;
@@ -186,6 +206,7 @@ class BudgetRepository extends ChangeNotifier {
       items: old.items,
       receiptDate: old.receiptDate,
       chargedTo: newChargedTo,
+      allocationSnapshot: old.allocationSnapshot,
     );
     _saveHistoryLocal();
     notifyListeners();
@@ -207,34 +228,18 @@ class BudgetRepository extends ChangeNotifier {
     final chargedTo = newChargedTo ?? old.chargedTo;
 
     List<CategorySplitResult> splits;
+    Map<String, double> snapshot = old.allocationSnapshot;
 
-    if (old.type == TransactionType.income) {
-      // For income, recalculate splits based on current categories
-      if (chargedTo == allCategoriesLabel || chargedTo == null) {
-        splits = _categories.map((cat) {
-          final allocated = (amount * cat.percentage / 100).roundToDouble();
-          return CategorySplitResult(category: cat, allocatedAmount: allocated);
-        }).toList();
-      } else {
-        // Income to specific category
-        final category = _categories.where((c) => c.name == chargedTo).firstOrNull;
-        splits = category != null
-            ? [CategorySplitResult(category: category, allocatedAmount: amount)]
-            : old.splits;
-      }
+    final isAll = chargedTo == allCategoriesLabel || chargedTo == null;
+    if (isAll) {
+      // "Seluruhnya": re-split using the FROZEN snapshot, never current categories.
+      splits = _splitBySnapshot(amount, old.allocationSnapshot);
     } else {
-      // For expense
-      if (chargedTo == allCategoriesLabel) {
-        splits = _categories.map((cat) {
-          final allocated = (amount * cat.percentage / 100).roundToDouble();
-          return CategorySplitResult(category: cat, allocatedAmount: allocated);
-        }).toList();
-      } else {
-        final category = _categories.where((c) => c.name == chargedTo).firstOrNull;
-        splits = category != null
-            ? [CategorySplitResult(category: category, allocatedAmount: amount)]
-            : old.splits;
-      }
+      // Explicit label: 100% to that category, percentages ignored entirely.
+      final category = _categories.where((c) => c.name == chargedTo).firstOrNull;
+      splits = category != null
+          ? [CategorySplitResult(category: category, allocatedAmount: amount)]
+          : old.splits;
     }
 
     _history[idx] = TransactionRecord(
@@ -248,6 +253,7 @@ class BudgetRepository extends ChangeNotifier {
       items: newItems ?? old.items,
       receiptDate: newReceiptDate ?? old.receiptDate,
       chargedTo: chargedTo,
+      allocationSnapshot: snapshot,
     );
     _saveHistoryLocal();
     notifyListeners();
@@ -359,14 +365,13 @@ class BudgetRepository extends ChangeNotifier {
       
       if (isIncome) {
         List<CategorySplitResult> splits;
+        Map<String, double> snapshot = const {};
         if (chargedTo == allCategoriesLabel || chargedTo.isEmpty) {
-          // Only "Seluruhnya" income is split by percentage
-          splits = _categories.map((cat) {
-            final allocated = (total * cat.percentage / 100).roundToDouble();
-            return CategorySplitResult(category: cat, allocatedAmount: allocated);
-          }).toList();
+          // "Seluruhnya" income: freeze current percentages at import time.
+          snapshot = _snapshotPercentages();
+          splits = _splitBySnapshot(total, snapshot);
         } else {
-          // Explicit category label -> full amount to that category
+          // Explicit category label -> full amount to that category.
           final category =
               _categories.where((c) => c.name == chargedTo).firstOrNull;
           splits = category != null
@@ -383,24 +388,24 @@ class BudgetRepository extends ChangeNotifier {
           items: cleanItems,
           receiptDate: receiptDate,
           chargedTo: chargedTo,
+          allocationSnapshot: snapshot,
         );
         _history = [record, ..._history];
       } else {
-        final targetCategory = chargedTo == allCategoriesLabel ? chargedTo : chargedTo;
         List<CategorySplitResult> splits;
-        
-        if (targetCategory == allCategoriesLabel) {
-          splits = _categories.map((cat) {
-            final allocated = (total * cat.percentage / 100).roundToDouble();
-            return CategorySplitResult(category: cat, allocatedAmount: allocated);
-          }).toList();
+        Map<String, double> snapshot = const {};
+        if (chargedTo == allCategoriesLabel || chargedTo.isEmpty) {
+          // "Seluruhnya" expense: freeze current percentages at import time.
+          snapshot = _snapshotPercentages();
+          splits = _splitBySnapshot(total, snapshot);
         } else {
-          final category = _categories.where((c) => c.name == targetCategory).firstOrNull;
+          final category =
+              _categories.where((c) => c.name == chargedTo).firstOrNull;
           splits = category != null
               ? [CategorySplitResult(category: category, allocatedAmount: total)]
               : <CategorySplitResult>[];
         }
-        
+
         final record = TransactionRecord(
           rawInput: cleanItems,
           totalAmount: total,
@@ -410,6 +415,7 @@ class BudgetRepository extends ChangeNotifier {
           items: cleanItems,
           receiptDate: receiptDate,
           chargedTo: chargedTo,
+          allocationSnapshot: snapshot,
         );
         _history = [record, ..._history];
       }

@@ -16,7 +16,7 @@ Future<void> _writeCrashLog(String tag, Object error, [StackTrace? stack]) async
   try {
     final dir = Directory('/sdcard/Download');
     if (!await dir.exists()) return;
-    final file = File('/sdcard/Download/hyperbudget_crash.log');
+    final file = File('/sdcard/Download/pundi_crash.log');
     final ts = DateTime.now().toIso8601String();
     final content =
         '[$ts] $tag\n$error\n\n${stack ?? ""}\n${'-' * 60}\n';
@@ -79,7 +79,7 @@ void main() async {
     await budgetRepository.init();
 
     runApp(
-      BudgetAIApp(
+      PundiApp(
         budgetRepository: budgetRepository,
       ),
     );
@@ -90,10 +90,10 @@ void main() async {
   }
 }
 
-class BudgetAIApp extends StatelessWidget {
+class PundiApp extends StatelessWidget {
   final BudgetRepository budgetRepository;
 
-  const BudgetAIApp({
+  const PundiApp({
     super.key,
     required this.budgetRepository,
   });
@@ -105,7 +105,7 @@ class BudgetAIApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: budgetRepository),
       ],
       child: MaterialApp(
-        title: 'BudgetAI',
+        title: 'Pundi',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme(

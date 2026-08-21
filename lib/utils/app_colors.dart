@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// BudgetAI Duolingo-Inspired Design System
+/// Pundi Duolingo-Inspired Design System
 /// Bright, playful, gamified palette
 /// Bold green primary, vibrant semantic colors
 class AppColors {
