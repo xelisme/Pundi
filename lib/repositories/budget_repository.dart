@@ -83,9 +83,12 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Build a frozen snapshot of CURRENT (active) category percentages (name -> pct).
+  // Build a frozen snapshot of ALL category percentages (name -> pct), so that
+  // "Seluruhnya" transactions created while a category is hidden still allocate
+  // to it (money is never silently lost). Active vs hidden only matters for the
+  // visible allocation UI, not for the math.
   Map<String, double> _snapshotPercentages() =>
-      {for (final c in activeCategories) c.name: c.percentage};
+      {for (final c in _categories) c.name: c.percentage};
 
   // Split an amount across categories using a FROZEN percentage snapshot,
   // not the currently-active _categories. Explicit-label transactions must
@@ -103,6 +106,41 @@ class BudgetRepository extends ChangeNotifier {
           CategorySplitResult(category: cat, allocatedAmount: allocated));
     }
     return result;
+  }
+
+  void recordIncome({
+    required double amount,
+    required String chargedToCategory,
+  }) {
+    List<CategorySplitResult> splits;
+    Map<String, double> snapshot = const {};
+
+    if (chargedToCategory == allCategoriesLabel) {
+      // "Seluruhnya" -> freeze current percentages (all categories) at creation time.
+      snapshot = _snapshotPercentages();
+      splits = _splitBySnapshot(amount, snapshot);
+    } else {
+      final category =
+          _categories.where((c) => c.name == chargedToCategory).firstOrNull;
+      splits = category != null
+          ? [CategorySplitResult(category: category, allocatedAmount: amount)]
+          : <CategorySplitResult>[];
+    }
+
+    final record = TransactionRecord(
+      rawInput: amount.toString(),
+      totalAmount: amount,
+      splits: splits,
+      type: TransactionType.income,
+      merchantName: '',
+      items: '',
+      receiptDate: DateTime.now().millisecondsSinceEpoch,
+      chargedTo: chargedToCategory,
+      allocationSnapshot: snapshot,
+    );
+    _history = [record, ..._history];
+    _saveHistoryLocal();
+    notifyListeners();
   }
 
   void recordExpense({

@@ -127,7 +127,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Consumer<BudgetRepository>(
               builder: (context, repo, _) {
                 final isExpense = record.type == TransactionType.expense;
-                final options = [allCategoriesLabel, ...repo.categories.map((c) => c.name)];
+                final options = [allCategoriesLabel, ...repo.activeCategories.map((c) => c.name)];
                 
                 return Column(
                   mainAxisSize: MainAxisSize.min,

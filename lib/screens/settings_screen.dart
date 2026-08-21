@@ -100,7 +100,7 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        '${repo.categories.length} KATEGORI'.toUpperCase(),
+                                        '${repo.activeCategories.length} KATEGORI'.toUpperCase(),
                                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                           color: AppColors.textTertiary,
                                           fontSize: 10,
@@ -202,7 +202,7 @@ class SettingsScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                if (index < repo.categories.length - 1)
+                                if (index < repo.activeCategories.length - 1)
                                   Divider(color: AppColors.divider, height: 1),
                               ],
                             );
@@ -367,10 +367,11 @@ class SettingsScreen extends StatelessWidget {
 
   void _showEditDialog(BuildContext context, AllocationCategory? category) async {
     final repo = context.read<BudgetRepository>();
-    final existingNames = repo.categories.map((c) => c.name).toList();
+    // Only active categories count for the 100% allocation rule.
+    final existingNames = repo.activeCategories.map((c) => c.name).toList();
 
-    // Total persentase semua kategori KECUALI yang sedang diedit
-    final totalOther = repo.categories
+    // Total persentase kategori AKTIF KECUALI yang sedang diedit
+    final totalOther = repo.activeCategories
         .where((c) => c.id != category?.id)
         .fold<double>(0, (sum, c) => sum + c.percentage);
 

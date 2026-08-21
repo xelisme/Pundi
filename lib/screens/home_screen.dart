@@ -45,8 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (raw.isEmpty) return;
 
     final repo = context.read<BudgetRepository>();
-    final categories = repo.categories;
-
     final amount = _parseAmount(raw);
     if (amount == null || amount <= 0) {
       _showSnackBar(context, 'Format tidak dikenali. Gunakan: 50000 atau 50k', isError: true);
@@ -55,31 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Determine target: allCategoriesLabel (default) or specific category
     final target = _selectedIncomeTarget ?? allCategoriesLabel;
-    
-    List<CategorySplitResult> splits;
-    if (target == allCategoriesLabel) {
-      // Split ke semua pos by percentage
-      splits = categories.map((cat) {
-        final allocated = (amount * cat.percentage / 100).roundToDouble();
-        return CategorySplitResult(category: cat, allocatedAmount: allocated);
-      }).toList();
-    } else {
-      // Alokasi ke pos tertentu
-      final category = categories.where((c) => c.name == target).firstOrNull;
-      splits = category != null
-          ? [CategorySplitResult(category: category, allocatedAmount: amount)]
-          : [];
-    }
+    repo.recordIncome(amount: amount, chargedToCategory: target);
 
-    final record = TransactionRecord(
-      rawInput: raw,
-      totalAmount: amount,
-      splits: splits,
-      type: TransactionType.income,
-      chargedTo: target,
-    );
-
-    repo.recordTransaction(record);
     _inputController.clear();
     setState(() => _selectedIncomeTarget = null);
 
@@ -502,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Allocation visualization
             Consumer<BudgetRepository>(
               builder: (context, repo, _) {
-                if (repo.categories.isEmpty) {
+                if (repo.activeCategories.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
@@ -527,12 +502,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(
                         height: 220,
                         child: RadialAllocationViz(
-                          allocations: {for (var c in repo.categories) c.name: c.percentage},
-                          colors: {for (var c in repo.categories) c.name: _hexToColor(c.colorHex)},
+                          allocations: {for (var c in repo.activeCategories) c.name: c.percentage},
+                          colors: {for (var c in repo.activeCategories) c.name: _hexToColor(c.colorHex)},
                         ),
                       ),
                       const SizedBox(height: 24),
-                      ...repo.categories.map((cat) => Padding(
+                      ...repo.activeCategories.map((cat) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           children: [
@@ -644,7 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Dropdown pilihan pos untuk pemasukan
                   Consumer<BudgetRepository>(
                     builder: (context, repo, _) {
-                      final options = [allCategoriesLabel, ...repo.categories.map((c) => c.name)];
+                      final options = [allCategoriesLabel, ...repo.activeCategories.map((c) => c.name)];
                       final selected = _selectedIncomeTarget ?? allCategoriesLabel;
                       
                       return Container(
@@ -843,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Category selection
               Consumer<BudgetRepository>(
                 builder: (context, repo, _) {
-                  if (repo.categories.isEmpty) {
+                  if (repo.activeCategories.isEmpty) {
                     return const SizedBox.shrink();
                   }
 
@@ -869,7 +844,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             isSelected: _selectedChargedTo == null || _selectedChargedTo == allCategoriesLabel,
                             onTap: () => setState(() => _selectedChargedTo = allCategoriesLabel),
                           ),
-                          ...repo.categories.map((cat) {
+                          ...repo.activeCategories.map((cat) {
                             final isSelected = _selectedChargedTo == cat.name;
                             final color = _hexToColor(cat.colorHex);
                             return _CategoryChip(
