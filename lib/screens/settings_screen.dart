@@ -133,8 +133,8 @@ class SettingsScreen extends StatelessWidget {
 
                           Divider(color: AppColors.divider, height: 1),
 
-                          // Category list
-                          ...repo.categories.asMap().entries.map((entry) {
+                          // Active category list
+                          ...repo.categories.where((c) => c.isActive).toList().asMap().entries.map((entry) {
                             final index = entry.key;
                             final category = entry.value;
                             final color = _hexToColor(category.colorHex);
@@ -191,7 +191,7 @@ class SettingsScreen extends StatelessWidget {
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                       ),
-                                      if (repo.categories.length > 1)
+                                      if (repo.activeCategories.length > 1)
                                         IconButton(
                                           icon: const Icon(Icons.delete_outline, size: 20),
                                           onPressed: () => _confirmDeleteCategory(context, category),
@@ -214,6 +214,93 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+            // Deleted (soft-deleted) categories — restorable
+            if (context.read<BudgetRepository>().categories.any((c) => !c.isActive))
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border, width: 1),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                          child: Text(
+                            'KATEGORI DIHAPUS',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppColors.textTertiary,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        ...context.read<BudgetRepository>().categories.where((c) => !c.isActive).map((category) {
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 3,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade400,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            category.name,
+                                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Riwayat tetap tersimpan',
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => _confirmRestoreCategory(context, category),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.green,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text('PULIHKAN'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (category != context.read<BudgetRepository>().categories.where((c) => !c.isActive).last)
+                                Divider(color: AppColors.divider, height: 1),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
@@ -330,11 +417,11 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: AppColors.surfaceWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          'Hapus Kategori?',
+          'Sembunyikan Kategori?',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         content: Text(
-          'Kategori "${category.name}" akan dihapus permanen.',
+          'Kategori "${category.name}" akan disembunyikan dari alokasi aktif. Riwayat transaksinya tetap tersimpan dan bisa dipulihkan lewat tombol "Pulihkan".',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
@@ -348,7 +435,7 @@ class SettingsScreen extends StatelessWidget {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Kategori "${category.name}" dihapus'),
+                  content: Text('Kategori "${category.name}" disembunyikan'),
                   backgroundColor: AppColors.error,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -361,6 +448,50 @@ class SettingsScreen extends StatelessWidget {
               foregroundColor: AppColors.surfaceWhite,
             ),
             child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRestoreCategory(BuildContext context, AllocationCategory category) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          'Pulihkan Kategori?',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: Text(
+          'Kategori "${category.name}" akan aktif kembali dan riwayat transaksinya kembali muncul di alokasi.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<BudgetRepository>().restoreCategory(category.id);
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Kategori "${category.name}" dipulihkan'),
+                  backgroundColor: AppColors.green,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.green,
+              foregroundColor: AppColors.surfaceWhite,
+            ),
+            child: const Text('Pulihkan'),
           ),
         ],
       ),
@@ -482,7 +613,7 @@ class SettingsScreen extends StatelessWidget {
       // Get temporary directory
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'hyper_budget_$timestamp.csv';
+      final fileName = 'pundi_$timestamp.csv';
       final filePath = '${tempDir.path}/$fileName';
       
       // Write CSV to temporary file

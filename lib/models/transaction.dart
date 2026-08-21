@@ -13,6 +13,9 @@ class AllocationCategory {
   final String colorHex;
   final String iconName;
   final String description;
+  // Soft-delete flag. When false the category is hidden from active use but
+  // its historical transactions still show in summaries (greyed out).
+  final bool isActive;
 
   AllocationCategory({
     String? id,
@@ -21,6 +24,7 @@ class AllocationCategory {
     required this.colorHex,
     this.iconName = 'account_balance_wallet',
     this.description = '',
+    this.isActive = true,
   }) : id = id ?? _uuid.v4();
 
   Map<String, dynamic> toJson() => {
@@ -30,6 +34,7 @@ class AllocationCategory {
         'colorHex': colorHex,
         'iconName': iconName,
         'description': description,
+        'isActive': isActive,
       };
 
   factory AllocationCategory.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +45,26 @@ class AllocationCategory {
         colorHex: json['colorHex'] as String,
         iconName: json['iconName'] as String? ?? 'account_balance_wallet',
         description: json['description'] as String? ?? '',
+        isActive: json['isActive'] as bool? ?? true,
+      );
+
+  AllocationCategory copyWith({
+    String? id,
+    String? name,
+    double? percentage,
+    String? colorHex,
+    String? iconName,
+    String? description,
+    bool? isActive,
+  }) =>
+      AllocationCategory(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        percentage: percentage ?? this.percentage,
+        colorHex: colorHex ?? this.colorHex,
+        iconName: iconName ?? this.iconName,
+        description: description ?? this.description,
+        isActive: isActive ?? this.isActive,
       );
 }
 

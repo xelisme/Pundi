@@ -11,6 +11,7 @@ class _CategoryBalance {
   final String colorHex;
   final int income;
   final int expense;
+  final bool isActive;
   int get balance => income - expense;
 
   _CategoryBalance({
@@ -18,6 +19,7 @@ class _CategoryBalance {
     required this.colorHex,
     required this.income,
     required this.expense,
+    this.isActive = true,
   });
 }
 
@@ -94,6 +96,7 @@ _MonthlySummary _calculateMonthlySummary(
       colorHex: cat.colorHex,
       income: categoryIncome[cat.name] ?? 0,
       expense: categoryExpense[cat.name] ?? 0,
+      isActive: cat.isActive,
     ));
   }
 
@@ -343,6 +346,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                             // Category rows
                             ...summary.categoryBalances.map((balance) {
                               final color = _hexToColor(balance.colorHex);
+                              final dimmed = !balance.isActive;
                               return Column(
                                 children: [
                                   Padding(
@@ -353,7 +357,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                           width: 3,
                                           height: 32,
                                           decoration: BoxDecoration(
-                                            color: color,
+                                            color: dimmed ? Colors.grey.shade400 : color,
                                             borderRadius: BorderRadius.circular(2),
                                           ),
                                         ),
@@ -363,15 +367,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                balance.name,
+                                                dimmed ? '${balance.name} (dihapus)' : balance.name,
                                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                   fontWeight: FontWeight.w600,
+                                                  color: dimmed ? Colors.grey.shade600 : null,
                                                 ),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
                                                 'Rp ${_fmt(balance.income)} − Rp ${_fmt(balance.expense)}',
-                                                style: Theme.of(context).textTheme.bodySmall,
+                                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                  color: dimmed ? Colors.grey.shade500 : null,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -384,7 +391,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                             style: GoogleFonts.nunito(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
-                                              color: balance.balance >= 0 ? AppColors.income : AppColors.expense,
+                                              color: dimmed
+                                                  ? Colors.grey.shade500
+                                                  : (balance.balance >= 0 ? AppColors.income : AppColors.expense),
                                               letterSpacing: -0.01,
                                             ),
                                           ),
