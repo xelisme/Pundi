@@ -228,6 +228,8 @@ class BudgetRepository extends ChangeNotifier {
 
   // Soft delete: mark inactive instead of removing, so historical transactions
   // in summaries are preserved (greyed out) and can be restored later.
+  // A soft-deleted category can NOT receive new income/expense (the input
+  // dropdowns only list activeCategories), but its past transactions remain.
   void deleteCategory(String id) {
     if (activeCategories.length <= 1) return; // keep at least one active
     _categories = _categories
@@ -235,6 +237,65 @@ class BudgetRepository extends ChangeNotifier {
         .toList();
     _saveCategoriesLocal();
     notifyListeners();
+  }
+
+  // Count how many transactions are explicitly charged to a category name.
+  int transactionCountForCategory(String categoryName) =>
+      _history.where((t) => t.chargedTo == categoryName).length;
+
+  // Permanent delete: remove the category entirely and reassign ALL of its
+  // transactions to another (active) category. `reassignTo` is REQUIRED when
+  // the category still has transactions, so no money/record is silently lost.
+  // If the category has zero transactions, it is simply removed.
+  bool permanentlyDeleteCategory(String id, {String? reassignTo}) {
+    final cat = _categories.where((c) => c.id == id).firstOrNull;
+    if (cat == null) return false;
+    if (_categories.length <= 1) return false; // keep at least one category
+
+    final txCount = transactionCountForCategory(cat.name);
+    if (txCount > 0) {
+      // Reassignment is mandatory when transactions exist.
+      if (reassignTo == null || reassignTo.isEmpty) return false;
+      if (reassignTo != allCategoriesLabel) {
+        final target = _categories
+            .where((c) => c.name == reassignTo && c.isActive)
+            .firstOrNull;
+        if (target == null) return false; // must reassign to a real active cat
+      }
+      // Reassign every transaction charged to this category.
+      _history = _history.map((t) {
+        if (t.chargedTo != cat.name) return t;
+        return TransactionRecord(
+          id: t.id,
+          timestamp: t.timestamp,
+          rawInput: t.rawInput,
+          totalAmount: t.totalAmount,
+          splits: reassignTo == allCategoriesLabel
+              ? _splitBySnapshot(t.totalAmount, t.allocationSnapshot)
+              : [
+                  CategorySplitResult(
+                    category: _categories
+                        .firstWhere((c) => c.name == reassignTo),
+                    allocatedAmount: t.totalAmount,
+                  )
+                ],
+          type: t.type,
+          merchantName: t.merchantName,
+          items: t.items,
+          receiptDate: t.receiptDate,
+          chargedTo: reassignTo,
+          allocationSnapshot: reassignTo == allCategoriesLabel
+              ? t.allocationSnapshot
+              : const {},
+        );
+      }).toList();
+      _saveHistoryLocal();
+    }
+
+    _categories = _categories.where((c) => c.id != id).toList();
+    _saveCategoriesLocal();
+    notifyListeners();
+    return true;
   }
 
   // Restore a previously soft-deleted category.

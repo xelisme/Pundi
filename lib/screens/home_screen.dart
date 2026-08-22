@@ -51,8 +51,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Determine target: allCategoriesLabel (default) or specific category
-    final target = _selectedIncomeTarget ?? allCategoriesLabel;
+    // Determine target: allCategoriesLabel (default) or specific category.
+    // Guard: if the selected category was deactivated elsewhere, fall back.
+    final target = (_selectedIncomeTarget != null &&
+            _selectedIncomeTarget != allCategoriesLabel &&
+            !repo.activeCategories.any((c) => c.name == _selectedIncomeTarget))
+        ? allCategoriesLabel
+        : (_selectedIncomeTarget ?? allCategoriesLabel);
     repo.recordIncome(amount: amount, chargedToCategory: target);
 
     _inputController.clear();
@@ -78,7 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final repo = context.read<BudgetRepository>();
-    final chargedTo = _selectedChargedTo ?? allCategoriesLabel; // default: Seluruhnya
+    // default: Seluruhnya; guard if the selected category was deactivated.
+    final chargedTo = (_selectedChargedTo != null &&
+            _selectedChargedTo != allCategoriesLabel &&
+            !repo.activeCategories.any((c) => c.name == _selectedChargedTo))
+        ? allCategoriesLabel
+        : (_selectedChargedTo ?? allCategoriesLabel);
 
     repo.recordExpense(
       merchantName: merchant,

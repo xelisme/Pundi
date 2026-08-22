@@ -412,17 +412,22 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _confirmDeleteCategory(BuildContext context, AllocationCategory category) {
+    final repo = context.read<BudgetRepository>();
+    final txCount = repo.transactionCountForCategory(category.name);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          'Sembunyikan Kategori?',
+          'Hapus Kategori?',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         content: Text(
-          'Kategori "${category.name}" akan disembunyikan dari alokasi aktif. Riwayat transaksinya tetap tersimpan dan bisa dipulihkan lewat tombol "Pulihkan".',
+          'Pilih salah satu:\n\n'
+          '• Nonaktifkan — kategori disembunyikan, riwayat tetap ada & bisa dipulihkan. Tidak bisa terima transaksi baru.\n\n'
+          '• Hapus Permanen${txCount > 0 ? ' — $txCount transaksi akan dipindahkan ke kategori lain (wajib pilih)' : ' — tidak ada transaksi, kategori dihapus langsung'}.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
@@ -430,27 +435,130 @@ class SettingsScreen extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
           ),
+          TextButton(
+            onPressed: () {
+              repo.deleteCategory(category.id);
+              Navigator.of(context).pop();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Kategori "${category.name}" dinonaktifkan'),
+                    backgroundColor: AppColors.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+            child: const Text('Nonaktifkan'),
+          ),
           ElevatedButton(
             onPressed: () {
-              context.read<BudgetRepository>().deleteCategory(category.id);
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Kategori "${category.name}" disembunyikan'),
-                  backgroundColor: AppColors.error,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
+              _confirmPermanentDelete(context, category);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: AppColors.surfaceWhite,
             ),
-            child: const Text('Hapus'),
+            child: const Text('Hapus Permanen'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmPermanentDelete(BuildContext context, AllocationCategory category) {
+    final repo = context.read<BudgetRepository>();
+    final txCount = repo.transactionCountForCategory(category.name);
+    final targets = repo.activeCategories.where((c) => c.id != category.id).toList();
+
+    String? selected = targets.isNotEmpty ? targets.first.name : null;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.surfaceWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text(
+            'Hapus Permanen',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          content: txCount > 0
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$txCount transaksi pada "${category.name}" akan dipindahkan ke:',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selected,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: allCategoriesLabel,
+                          child: Text(allCategoriesLabel),
+                        ),
+                        ...targets.map((c) => DropdownMenuItem(
+                              value: c.name,
+                              child: Text(c.name),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() => selected = v),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Kategori "${category.name}" tidak punya transaksi. Akan dihapus langsung.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: txCount > 0 && selected == null
+                  ? null
+                  : () {
+                      final ok = repo.permanentlyDeleteCategory(
+                        category.id,
+                        reassignTo: txCount > 0 ? selected : null,
+                      );
+                      Navigator.of(context).pop();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? 'Kategori "${category.name}" dihapus${txCount > 0 ? ' & $txCount transaksi dipindahkan' : ''}'
+                                : 'Gagal menghapus kategori'),
+                            backgroundColor: ok ? AppColors.error : AppColors.expense,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: AppColors.surfaceWhite,
+              ),
+              child: const Text('Hapus'),
+            ),
+          ],
+        ),
       ),
     );
   }
