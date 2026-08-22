@@ -75,10 +75,8 @@ flutter test               # jalankan test (analyzer harus clean)
 
 ## Tangkapan Layar
 
-Letakkan screenshot app di `docs/screenshots/` (diambil dari device lo):
+| Beranda (alokasi otomatis) | Ringkasan (per kategori) |
+|----------------------------|--------------------------|
+| ![Beranda](docs/screenshots/beranda.jpg) | ![Ringkasan](docs/screenshots/ringkasan.jpg) |
 
-| Layar | File |
-|-------|------|
-| Beranda | `docs/screenshots/home.png` |
-| Ringkasan | `docs/screenshots/summary.png` |
-| Pengaturan | `docs/screenshots/settings.png` |
+> Catat pengeluaran: `docs/screenshots/beranda-pengeluaran.jpg`
