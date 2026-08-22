@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +12,9 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> _categories = [];
   List<TransactionRecord> _history = [];
   SharedPreferences? _prefs;
+  final List<String> _lastImportFailedLines = [];
+
+  List<String> get lastImportFailedLines => _lastImportFailedLines;
 
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
@@ -401,21 +405,40 @@ class BudgetRepository extends ChangeNotifier {
   }
 
   int importFromCsv(String csvContent) {
-    final lines = csvContent
-        .replaceAll('\r\n', '\n')
-        .replaceAll('\r', '\n')
-        .split('\n')
-        .where((l) => l.trim().isNotEmpty)
-        .toList();
-    if (lines.length < 2) return 0;
-    
+    _lastImportFailedLines.clear();
+
+    // RFC 4180-compliant parse via the `csv` package. Handles quoted fields
+    // with embedded newlines, commas, and "" escapes — no manual split.
+    final rows = const CsvToListConverter(
+      fieldDelimiter: ',',
+      eol: '\n',
+      shouldParseNumbers: false,
+    ).convert(csvContent.trim());
+
+    if (rows.length < 2) {
+      _lastImportFailedLines.add('File kosong atau hanya berisi header.');
+      return 0;
+    }
+
     int imported = 0;
-    for (int i = 1; i < lines.length; i++) {
-      final parts = _parseCsvLine(lines[i]);
-      if (parts.length < 7) continue;
-      
-      final toko = parts[0];
-      final total = double.tryParse(parts[1]) ?? 0;
+    // rows[0] = header; data starts at index 1.
+    for (int i = 1; i < rows.length; i++) {
+      final parts = rows[i].map((e) => e.toString()).toList();
+      if (parts.length < 7) {
+        _lastImportFailedLines
+            .add('Baris ${i + 1}: kolom tidak lengkap (${parts.length}/7 minimal)');
+        continue;
+      }
+
+      final toko = parts[0].trim();
+      final totalStr = parts[1].trim();
+      final total = double.tryParse(totalStr);
+      if (total == null || total <= 0) {
+        _lastImportFailedLines
+            .add('Baris ${i + 1}: nominal tidak valid "$totalStr"');
+        continue;
+      }
+
       final items = parts[2];
       final tanggalStruk = parts[3];
       final chargedTo = parts[6];
@@ -423,23 +446,22 @@ class BudgetRepository extends ChangeNotifier {
       // "Tabungan:50;Investasi:30;Bebas:20". Empty/old files -> use fallback.
       final snapshotRaw = parts.length > 7 ? parts[7].trim() : '';
       final importedSnapshot = _parseSnapshot(snapshotRaw);
-      
-      if (total <= 0) continue;
-      
-      final isIncome = items.toLowerCase().contains('pemasukan') || 
-                       toko.toLowerCase().contains('pemasukan') ||
-                       (chargedTo != 'Bebas' && items.toLowerCase().contains('uang'));
-      
+
+      final isIncome = items.toLowerCase().contains('pemasukan') ||
+          toko.toLowerCase().contains('pemasukan') ||
+          (chargedTo != 'Bebas' && items.toLowerCase().contains('uang'));
+
       int receiptDate;
       try {
         receiptDate = DateTime.parse(tanggalStruk).millisecondsSinceEpoch;
       } catch (_) {
         receiptDate = DateTime.now().millisecondsSinceEpoch;
       }
-      
+
       final merchantName = toko == 'Manual Input' ? '' : toko;
-      final cleanItems = items.replaceAll(RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false), '');
-      
+      final cleanItems =
+          items.replaceAll(RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false), '');
+
       List<CategorySplitResult> splits;
       Map<String, double> snapshot;
       if (chargedTo == allCategoriesLabel || chargedTo.isEmpty) {
@@ -475,7 +497,7 @@ class BudgetRepository extends ChangeNotifier {
       _history = [record, ..._history];
       imported++;
     }
-    
+
     _saveHistoryLocal();
     notifyListeners();
     return imported;
@@ -494,30 +516,5 @@ class BudgetRepository extends ChangeNotifier {
       }
     }
     return map;
-  }
-
-  List<String> _parseCsvLine(String line) {
-    final parts = <String>[];
-    final current = StringBuffer();
-    bool inQuotes = false;
-    
-    for (int i = 0; i < line.length; i++) {
-      final char = line[i];
-      if (char == '"') {
-        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
-          current.write('"');
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char == ',' && !inQuotes) {
-        parts.add(current.toString());
-        current.clear();
-      } else {
-        current.write(char);
-      }
-    }
-    parts.add(current.toString());
-    return parts;
   }
 }

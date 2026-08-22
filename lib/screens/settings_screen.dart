@@ -668,17 +668,33 @@ class SettingsScreen extends StatelessWidget {
     
     final repo = context.read<BudgetRepository>();
     final imported = repo.importFromCsv(csvContent);
-    
+
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$imported transaksi berhasil diimpor'),
-          backgroundColor: AppColors.income,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      final failed = repo.lastImportFailedLines;
+      if (failed.isNotEmpty) {
+        final preview = failed.take(3).join('\n');
+        final extra = failed.length > 3 ? '\n+ ${failed.length - 3} baris lainnya' : '';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Impor: $imported berhasil, ${failed.length} gagal.\n$preview$extra'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$imported transaksi berhasil diimpor'),
+            backgroundColor: AppColors.income,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     }
   }
 }
