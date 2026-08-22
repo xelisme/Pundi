@@ -96,20 +96,59 @@ class BudgetRepository extends ChangeNotifier {
 
   // Split an amount across categories using a FROZEN percentage snapshot,
   // not the currently-active _categories. Explicit-label transactions must
-  // NOT call this (they go 100% to one category). Looks up the category by
-  // name across ALL categories (including soft-deleted ones) so that money
-  // allocated to a now-hidden category is not lost.
+  // NOT call this (they go 100% to one category).
+  //
+  // Only ACTIVE categories receive money. If a snapshot entry points to a
+  // category that is now soft-deleted or permanently gone, its share is
+  // redistributed proportionally across the remaining ACTIVE categories so
+  // that the FULL amount is always allocated (no silent money loss).
   List<CategorySplitResult> _splitBySnapshot(
       double amount, Map<String, double> snapshot) {
-    final result = <CategorySplitResult>[];
+    // 1) Active categories that still have a (non-zero) snapshot share.
+    final activeShares = <AllocationCategory, double>{};
+    double activePctSum = 0;
     for (final entry in snapshot.entries) {
-      final cat = _categories.where((c) => c.name == entry.key).firstOrNull;
-      if (cat == null) continue; // category truly gone; skip
-      final allocated = (amount * entry.value / 100).roundToDouble();
-      result.add(
-          CategorySplitResult(category: cat, allocatedAmount: allocated));
+      if (entry.value <= 0) continue;
+      final cat = _categories
+          .where((c) => c.name == entry.key && c.isActive)
+          .firstOrNull;
+      if (cat == null) continue; // soft-deleted / gone -> handled below
+      activeShares[cat] = entry.value;
+      activePctSum += entry.value;
     }
-    return result;
+
+    // 2) If the active shares already sum to ~100, use them directly.
+    if (activePctSum >= 99.999) {
+      return [
+        for (final e in activeShares.entries)
+          CategorySplitResult(
+            category: e.key,
+            allocatedAmount: (amount * e.value / 100).roundToDouble(),
+          )
+      ];
+    }
+
+    // 3) Otherwise (some category was removed) redistribute the FULL amount
+    //    across the active categories proportionally to their snapshot share.
+    if (activeShares.isEmpty) {
+      // Fallback: spread evenly across all active categories.
+      final actives = activeCategories;
+      if (actives.isEmpty) return [];
+      final each = (amount / actives.length).roundToDouble();
+      return [
+        for (final c in actives)
+          CategorySplitResult(category: c, allocatedAmount: each)
+      ];
+    }
+    // Normalize active shares so they sum to 100, then split the full amount.
+    return [
+      for (final e in activeShares.entries)
+        CategorySplitResult(
+          category: e.key,
+          allocatedAmount:
+              (amount * (e.value / activePctSum)).roundToDouble(),
+        )
+    ];
   }
 
   void recordIncome({
@@ -251,20 +290,37 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Count how many transactions are explicitly charged to a category name.
-  int transactionCountForCategory(String categoryName) =>
-      _history.where((t) => t.chargedTo == categoryName).length;
+  // Count transactions that touch a category: explicitly charged to it, or a
+  // "Seluruhnya" transaction whose frozen snapshot included it.
+  int transactionCountForCategory(String categoryName) {
+    final cat = _categories.where((c) => c.name == categoryName).firstOrNull;
+    if (cat == null) return 0;
+    return _history.where(_referencesCategory(cat)).length;
+  }
+
+  // A transaction "references" a category if it is explicitly charged to it,
+  // or is a "Seluruhnya" transaction whose frozen snapshot included it.
+  bool Function(TransactionRecord) _referencesCategory(AllocationCategory cat) =>
+      (TransactionRecord t) =>
+          t.chargedTo == cat.name ||
+          (t.chargedTo == allCategoriesLabel &&
+              t.allocationSnapshot.containsKey(cat.name));
 
   // Permanent delete: remove the category entirely and reassign ALL of its
   // transactions to another (active) category. `reassignTo` is REQUIRED when
   // the category still has transactions, so no money/record is silently lost.
   // If the category has zero transactions, it is simply removed.
+  //
+  // A category is considered to "have transactions" if any transaction is
+  // explicitly charged to it OR is a "Seluruhnya" transaction whose frozen
+  // snapshot included this category (so its money must be redistributed).
   bool permanentlyDeleteCategory(String id, {String? reassignTo}) {
     final cat = _categories.where((c) => c.id == id).firstOrNull;
     if (cat == null) return false;
     if (_categories.length <= 1) return false; // keep at least one category
 
-    final txCount = transactionCountForCategory(cat.name);
+    final txCount = _history.where(_referencesCategory(cat)).length;
+
     if (txCount > 0) {
       // Reassignment is mandatory when transactions exist.
       if (reassignTo == null || reassignTo.isEmpty) return false;
@@ -274,15 +330,20 @@ class BudgetRepository extends ChangeNotifier {
             .firstOrNull;
         if (target == null) return false; // must reassign to a real active cat
       }
-      // Reassign every transaction charged to this category.
+      // Reassign every transaction that references this category:
+      //  - explicit-label tx (chargedTo == cat.name), or
+      //  - "Seluruhnya" tx whose frozen snapshot included this category.
       _history = _history.map((t) {
-        if (t.chargedTo != cat.name) return t;
+        if (!_referencesCategory(cat)(t)) return t;
+
         if (reassignTo == allCategoriesLabel) {
-          // Reassign to "Seluruhnya": split using the FROZEN snapshot if the
-          // transaction already had one (explicit-label txs have none), else
-          // fall back to current active percentages so money is never lost.
-          final snapshot = t.allocationSnapshot.isNotEmpty
-              ? t.allocationSnapshot
+          // Re-split via "Seluruhnya": drop the deleted category's entry from
+          // the snapshot so _splitBySnapshot redistributes its share to the
+          // remaining ACTIVE categories (full amount preserved).
+          final adjusted = Map<String, double>.from(t.allocationSnapshot)
+            ..remove(cat.name);
+          final snapshot = adjusted.isNotEmpty
+              ? adjusted
               : _snapshotPercentages();
           return TransactionRecord(
             id: t.id,
@@ -298,6 +359,7 @@ class BudgetRepository extends ChangeNotifier {
             allocationSnapshot: snapshot,
           );
         }
+        // Reassign 100% to the chosen active category.
         final target = _categories.firstWhere((c) => c.name == reassignTo);
         return TransactionRecord(
           id: t.id,
@@ -322,8 +384,16 @@ class BudgetRepository extends ChangeNotifier {
     return true;
   }
 
-  // Restore a previously soft-deleted category.
+  // Restore a previously soft-deleted category. Refused (no-op) if restoring
+  // would push total ACTIVE allocation above 100% (the UI also guards this,
+  // but this protects CSV-import / programmatic paths).
   void restoreCategory(String id) {
+    final target = _categories.where((c) => c.id == id).firstOrNull;
+    if (target == null || target.isActive) return;
+    final others = activeCategories;
+    final newTotal =
+        others.fold<double>(0, (s, c) => s + c.percentage) + target.percentage;
+    if (newTotal > 100.0001) return; // refused; would exceed 100%
     _categories = _categories
         .map((c) => c.id == id ? c.copyWith(isActive: true) : c)
         .toList();
