@@ -215,12 +215,24 @@ class BudgetRepository extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    // Guard: adding must not push total ACTIVE allocation above 100%.
+    final newTotal =
+        activeCategories.fold<double>(0, (s, c) => s + c.percentage) +
+            category.percentage;
+    if (newTotal > 100.0001) return; // refused; UI surfaces the error
     _categories = [..._categories, category];
     _saveCategoriesLocal();
     notifyListeners();
   }
 
   void updateCategory(String id, AllocationCategory updated) {
+    // Guard: editing must not push total ACTIVE allocation above 100%.
+    final othersActive =
+        activeCategories.where((c) => c.id != id);
+    final newTotal =
+        othersActive.fold<double>(0, (s, c) => s + c.percentage) +
+            updated.percentage;
+    if (newTotal > 100.0001) return; // refused; UI surfaces the error
     _categories = _categories.map((c) => c.id == id ? updated : c).toList();
     _saveCategoriesLocal();
     notifyListeners();
@@ -265,28 +277,40 @@ class BudgetRepository extends ChangeNotifier {
       // Reassign every transaction charged to this category.
       _history = _history.map((t) {
         if (t.chargedTo != cat.name) return t;
+        if (reassignTo == allCategoriesLabel) {
+          // Reassign to "Seluruhnya": split using the FROZEN snapshot if the
+          // transaction already had one (explicit-label txs have none), else
+          // fall back to current active percentages so money is never lost.
+          final snapshot = t.allocationSnapshot.isNotEmpty
+              ? t.allocationSnapshot
+              : _snapshotPercentages();
+          return TransactionRecord(
+            id: t.id,
+            timestamp: t.timestamp,
+            rawInput: t.rawInput,
+            totalAmount: t.totalAmount,
+            splits: _splitBySnapshot(t.totalAmount, snapshot),
+            type: t.type,
+            merchantName: t.merchantName,
+            items: t.items,
+            receiptDate: t.receiptDate,
+            chargedTo: reassignTo,
+            allocationSnapshot: snapshot,
+          );
+        }
+        final target = _categories.firstWhere((c) => c.name == reassignTo);
         return TransactionRecord(
           id: t.id,
           timestamp: t.timestamp,
           rawInput: t.rawInput,
           totalAmount: t.totalAmount,
-          splits: reassignTo == allCategoriesLabel
-              ? _splitBySnapshot(t.totalAmount, t.allocationSnapshot)
-              : [
-                  CategorySplitResult(
-                    category: _categories
-                        .firstWhere((c) => c.name == reassignTo),
-                    allocatedAmount: t.totalAmount,
-                  )
-                ],
+          splits: [CategorySplitResult(category: target, allocatedAmount: t.totalAmount)],
           type: t.type,
           merchantName: t.merchantName,
           items: t.items,
           receiptDate: t.receiptDate,
           chargedTo: reassignTo,
-          allocationSnapshot: reassignTo == allCategoriesLabel
-              ? t.allocationSnapshot
-              : const {},
+          allocationSnapshot: const {},
         );
       }).toList();
       _saveHistoryLocal();

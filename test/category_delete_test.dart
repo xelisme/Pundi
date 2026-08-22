@@ -14,6 +14,9 @@ void main() {
   });
 
   test('permanently delete empty category removes it', () {
+    // Make room so the new 10% category keeps total <= 100.
+    final invest = repo.categories.firstWhere((c) => c.name == 'Investasi');
+    repo.updateCategory(invest.id, invest.copyWith(percentage: 10)); // 50+10+20=80
     repo.addCategory(AllocationCategory(
       name: 'Kosong', percentage: 10, colorHex: '123456',
     ));
