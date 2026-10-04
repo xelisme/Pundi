@@ -9,6 +9,8 @@ import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
+import 'state/ledger_filter_controller.dart';
+import 'state/main_tab_controller.dart';
 import 'utils/app_colors.dart';
 
 /// Tulis error ke file di disk agar bisa dibaca walau device tidak nyambung ADB.
@@ -103,6 +105,11 @@ class PundiApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: budgetRepository),
+        // Above the tab shell on purpose: Ringkasan states a filtered total and
+        // Riwayat has to list exactly the records behind it, so the selection
+        // must outlive whichever screen is on top.
+        ChangeNotifierProvider(create: (_) => LedgerFilterController()),
+        ChangeNotifierProvider(create: (_) => MainTabController()),
       ],
       child: MaterialApp(
         title: 'Pundi',
@@ -349,8 +356,6 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
-
   final _screens = const [
     HomeScreen(),
     HistoryScreen(),
@@ -360,9 +365,14 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    // Read from the controller rather than holding the index in State, so
+    // Ringkasan can send the user to Riwayat when they tap a category to see
+    // the records behind a total.
+    final tabs = context.watch<MainTabController>();
+
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: tabs.index,
         children: _screens,
       ),
       bottomNavigationBar: Container(
@@ -375,9 +385,8 @@ class _MainNavigationState extends State<MainNavigation> {
         child: NavigationBar(
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFFD7F5B2),
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) =>
-              setState(() => _currentIndex = index),
+          selectedIndex: tabs.index,
+          onDestinationSelected: tabs.select,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             NavigationDestination(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_budget_flutter/repositories/budget_repository.dart';
 import 'package:hyper_budget_flutter/screens/summary_screen.dart';
+import 'package:hyper_budget_flutter/state/ledger_filter_controller.dart';
+import 'package:hyper_budget_flutter/state/main_tab_controller.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,8 +24,15 @@ void main() {
 
   Future<void> pumpSummary(WidgetTester tester) async {
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: repo,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: repo),
+          // Ringkasan publishes its selection here for Riwayat to read, and can
+          // ask the tab shell to switch screens. main.dart provides both above
+          // the shell, so a widget test has to stand them in.
+          ChangeNotifierProvider(create: (_) => LedgerFilterController()),
+          ChangeNotifierProvider(create: (_) => MainTabController()),
+        ],
         child: const MaterialApp(home: SummaryScreen()),
       ),
     );
