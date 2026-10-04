@@ -242,25 +242,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // The title row carries the one control that sets the period, so the
-                        // range is reachable without hunting for it. Matching
-                        // Riwayat's header circle keeps the two screens reading
-                        // as the same app.
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Ringkasan',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.1,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            _buildCalendarButton(),
-                          ],
+                        Text(
+                          'Ringkasan',
+                          style: GoogleFonts.nunito(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         // Period pill. Rendered in every mode so the affordance
@@ -271,20 +260,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           children: [
                             _stepButton(Icons.chevron_left, _previousMonth),
                             const SizedBox(width: 12),
-                            Flexible(
-                              child: Text(
-                                label,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.nunito(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _canStepMonths
-                                      ? Colors.white
-                                      : Colors.white70,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
+                            Flexible(child: _buildPeriodLabel(label)),
                             const SizedBox(width: 12),
                             _stepButton(Icons.chevron_right, _nextMonth),
                           ],
@@ -325,12 +301,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ),
                   ),
                 ),
-
-                // Which category is in view, above the numbers it changes.
-                // Sitting here rather than below the hero card is the point:
-                // the hero card is tall, and a filter you have to scroll to
-                // reach is a filter that gets forgotten.
-                SliverToBoxAdapter(child: _buildFilterSection(context, repo)),
 
                 // Hero numbers - Editorial pull quote style
                 SliverToBoxAdapter(
@@ -598,59 +568,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  /// Period and category pickers, plus what the current selection means.
-  Widget _buildFilterSection(BuildContext context, BudgetRepository repo) {
-    // Archived categories are excluded because archiving one reassigns every
-    // transaction away from it, so it could only ever show zero. Nonaktif ones
-    // are kept: they still hold real money from before they were switched off.
-    final categories =
-        repo.categories.where((c) => !c.isArchived).toList(growable: false);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Period is set from the calendar in the header, not from a row here,
-          // so this section is only about which category is in view.
-          Text(
-            'KATEGORI',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.textTertiary,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 34,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _FilterChip(
-                  label: 'Semua',
-                  selected: _category == null,
-                  onTap: () => _applyCategory(null),
-                ),
-                for (final category in categories)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _FilterChip(
-                      label: category.name,
-                      dot: _hexToColor(category.colorHex),
-                      selected: _category == category.name,
-                      onTap: () => _applyCategory(
-                          _category == category.name ? null : category.name),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// True once the user has narrowed something themselves.
   ///
   /// The default month view is not a selection, so it stays as totals plus the
@@ -797,47 +714,44 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  /// The single control that sets the period.
+  /// The month name, which doubles as the way into an arbitrary range.
   ///
-  /// The dot is not decoration: a hand-picked range is indistinguishable from a
-  /// stepped month in the header pill otherwise, and the pill goes dim once a
-  /// range is active. Without the dot there is no way to tell that the arrows
-  /// have stopped working.
-  Widget _buildCalendarButton() {
-    final active = _isRangeMode;
+  /// The label and the arrows are separate hit targets on purpose. They answer
+  /// two different questions — "some other stretch of dates" versus "one month
+  /// over" — so folding them into one tappable pill would either make the range
+  /// picker swallow month-stepping or hide it behind a long press.
+  ///
+  /// The label stays full white even when the arrows go dim. It is still live in
+  /// every mode, including SEMUA, where a month preset is one tap away inside
+  /// the sheet; dimming it along with the arrows would have been a lie about
+  /// what responds.
+  Widget _buildPeriodLabel(String label) {
     return GestureDetector(
+      // The label reads differently every month, so this is the only stable way
+      // to aim at it. Tests use it; nothing in the app looks it up.
+      key: const ValueKey('periodLabel'),
+      behavior: HitTestBehavior.opaque,
       onTap: _openRangeSheet,
       child: Container(
-        width: 44,
-        height: 44,
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        // The only cue that this opens something. A calendar icon sat here
+        // before and was removed for good reason: one pill already carries a
+        // glyph on each side, and a third for the label's job made the pill read
+        // as three buttons rather than one label between two arrows.
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: active ? 0.34 : 0.2),
-          shape: BoxShape.circle,
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+          ),
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            Icon(
-              active ? Icons.event_available : Icons.calendar_month_outlined,
-              color: Colors.white,
-              size: 22,
-            ),
-            if (active)
-              Positioned(
-                right: 8,
-                top: 9,
-                child: Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: AppColors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                ),
-              ),
-          ],
+        child: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.nunito(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
     );
@@ -963,13 +877,11 @@ class _FilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.dot,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final Color? dot;
 
   @override
   Widget build(BuildContext context) {
@@ -989,17 +901,6 @@ class _FilterChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (dot != null) ...[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: dot,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
             Text(
               label,
               style: GoogleFonts.nunito(

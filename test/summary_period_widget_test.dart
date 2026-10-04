@@ -107,101 +107,109 @@ void main() {
     expect(find.textContaining('bulan ·'), findsNothing);
   });
 
-  // --- the calendar button in the header is where the period is set ---------
+  // --- the month name is the way into a custom range -----------------------
 
-  testWidgets('the header calendar opens the range picker',
+  /// What the header pill currently claims the period is.
+  String labelText(WidgetTester tester) => tester
+      .widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('periodLabel')),
+          matching: find.byType(Text),
+        ),
+      )
+      .data!;
+
+  String monthName(DateTime d) =>
+      DateFormat('MMMM yyyy', 'id_ID').format(d).toUpperCase();
+
+  testWidgets('the month name opens the range picker',
       (WidgetTester tester) async {
     await pumpSummary(tester);
 
-    expect(find.byIcon(Icons.calendar_month_outlined), findsOneWidget);
+    // The corner calendar is gone; the label is the only way in.
+    expect(find.byIcon(Icons.calendar_month_outlined), findsNothing);
+    expect(find.byIcon(Icons.event_available), findsNothing);
     expect(find.text('Rentang periode'), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
 
     expect(find.text('Rentang periode'), findsOneWidget);
-    // The presets moved into the sheet rather than disappearing with the chip
-    // row — "last 30 days" should not cost two date picks now.
-    expect(find.text('30 hari'), findsOneWidget);
+    // Presets stayed inside the sheet rather than going with the chip row, so
+    // "last 7 days" still costs one tap.
+    expect(find.text('7 hari'), findsOneWidget);
   });
 
-  testWidgets('a preset range from the sheet applies and marks the calendar',
+  testWidgets('a preset range replaces the month name and stills the arrows',
       (WidgetTester tester) async {
     await pumpSummary(tester);
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    final month = monthName(DateTime.now());
+    expect(labelText(tester), month);
+
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('7 hari'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('30 hari'));
-    await tester.pumpAndSettle();
+    // The label says what is actually on screen, so a hand-picked span is not
+    // mistakable for the month it started in.
+    expect(labelText(tester), isNot(month));
+    expect(labelText(tester), contains('-'));
 
-    // Sheet dismissed and the calendar now carries the "a range is set" state,
-    // so a hand-picked period is not mistaken for a stepped month.
-    expect(find.text('Rentang periode'), findsNothing);
-    expect(find.byIcon(Icons.event_available), findsOneWidget);
-    expect(find.byIcon(Icons.calendar_month_outlined), findsNothing);
+    // And the arrows go inert instead of quietly walking a span that is not one
+    // month wide.
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+    expect(labelText(tester), contains('-'),
+        reason: 'stepping months under a range would move a span silently');
   });
 
   testWidgets('the Semua preset means the SEMUA mode, not a 2000-2100 range',
       (WidgetTester tester) async {
     await pumpSummary(tester);
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
 
-    // "Semua" appears twice once the sheet is open: as this preset and as the
-    // all-categories chip behind it. The presets are the ones in a Wrap.
-    final semuaPreset =
-        find.descendant(of: find.byType(Wrap), matching: find.text('Semua'));
-    expect(semuaPreset, findsOneWidget);
-    await tester.tap(semuaPreset);
+    // "SEMUA" on the toggle behind the sheet is a different casing, so this is
+    // the preset alone.
+    expect(find.text('Semua'), findsOneWidget);
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
-    // The header has to say so in the words the toggle uses. Taken literally as
-    // a range it printed "1 JAN 2000 - 31 DES 2100" and lit neither half of
-    // PER BULAN/SEMUA.
+    // Taken literally as a range this printed "1 JAN 2000 - 31 DES 2100" and
+    // lit neither half of PER BULAN/SEMUA.
     expect(find.text('SEMUA PERIODE'), findsOneWidget);
     expect(find.textContaining('2100'), findsNothing);
-    expect(find.byIcon(Icons.event_available), findsNothing,
-        reason: 'all-time is not a custom range, so no range marker');
+    expect(labelText(tester), 'SEMUA PERIODE');
   });
 
   testWidgets('picking Bulan ini hands the chevrons back',
       (WidgetTester tester) async {
     await pumpSummary(tester);
 
-    // Go off to a custom range first, so returning to a month is a real change.
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    // Go off to a range first, so returning to a month is a real change.
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('30 hari'));
+    await tester.tap(find.text('7 hari'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.event_available), findsOneWidget);
+    expect(labelText(tester), contains('-'));
 
-    // The calendar icon reports that a range is set, so that is the one to press
-    // now — reopening the sheet is the only way back to a month.
-    await tester.tap(find.byIcon(Icons.event_available));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bulan ini'));
     await tester.pumpAndSettle();
 
-    // Back in month mode: the arrows work again and the header reads as a month
-    // rather than a span of days.
-    expect(find.byIcon(Icons.calendar_month_outlined), findsOneWidget);
-    expect(
-      find.text(
-          DateFormat('MMMM yyyy', 'id_ID').format(DateTime.now()).toUpperCase()),
-      findsOneWidget,
-    );
+    // Back in month mode: the label reads as a month and the arrows work again.
+    expect(labelText(tester), monthName(DateTime.now()));
 
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
-    final previous = DateTime.now().month == 1
-        ? DateTime(DateTime.now().year - 1, 12)
-        : DateTime(DateTime.now().year, DateTime.now().month - 1);
-    expect(
-      find.text(
-          DateFormat('MMMM yyyy', 'id_ID').format(previous).toUpperCase()),
-      findsOneWidget,
-      reason: 'the chevrons must be live again, not inert after a range',
-    );
+    final now = DateTime.now();
+    final previous = now.month == 1
+        ? DateTime(now.year - 1, 12)
+        : DateTime(now.year, now.month - 1);
+    expect(labelText(tester), monthName(previous),
+        reason: 'the chevrons must be live again, not inert after a range');
   });
 
   // --- the transactions behind the figures, on the same screen -------------
@@ -301,9 +309,12 @@ void main() {
     await pumpSummaryTall(tester);
     expect(find.text('TRANSAKSI'), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('30 hari'));
+    // "7 hari", not "30 hari": a 30-day span ending on the 30th of a 30-day
+    // month is exactly that month, which snaps back to month mode and would make
+    // this test pass or fail depending on the day it runs.
+    await tester.tap(find.text('7 hari'));
     await tester.pumpAndSettle();
 
     // No category was chosen, yet the rows are here. Narrowing the period is the
