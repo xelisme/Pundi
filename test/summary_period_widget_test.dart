@@ -203,4 +203,132 @@ void main() {
       reason: 'the chevrons must be live again, not inert after a range',
     );
   });
+
+  // --- the transactions behind the figures, on the same screen -------------
+
+  /// A viewport tall enough to lay out the whole summary at once.
+  ///
+  /// The default 800x600 surface puts the inline rows below the fold, and
+  /// slivers do not build what is out of view — so "this row is not shown" and
+  /// "this row was never laid out" would be indistinguishable, and every
+  /// absence assertion below would pass for the wrong reason.
+  Future<void> pumpSummaryTall(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpSummary(tester);
+  }
+
+  int dayMs(int day) =>
+      DateTime(DateTime.now().year, DateTime.now().month, day)
+          .millisecondsSinceEpoch;
+
+  testWidgets('picking a category puts its rows on this screen',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+      merchantName: 'Toko A',
+      items: 'Barang',
+      amount: 100000,
+      chargedToCategory: 'Bebas',
+      receiptDate: dayMs(1),
+    );
+    repo.recordExpense(
+      merchantName: 'Toko B',
+      items: 'Barang',
+      amount: 200000,
+      chargedToCategory: 'Bebas',
+      receiptDate: dayMs(2),
+    );
+    repo.recordExpense(
+      merchantName: 'Toko C',
+      items: 'Barang',
+      amount: 300000,
+      chargedToCategory: 'Tabungan',
+      receiptDate: dayMs(3),
+    );
+    await pumpSummaryTall(tester);
+
+    // The default month is not a selection, so nothing opens uninvited.
+    expect(find.text('TRANSAKSI'), findsNothing);
+
+    await tester.tap(find.text('Bebas').first);
+    await tester.pumpAndSettle();
+
+    // One tap. The rows behind the figure are here, not behind a second one.
+    expect(find.text('TRANSAKSI'), findsOneWidget);
+    expect(find.text('Toko A'), findsOneWidget);
+    expect(find.text('Toko B'), findsOneWidget);
+    // The other pocket stays out of the narrowed view.
+    expect(find.text('Toko C'), findsNothing);
+  });
+
+  testWidgets('a long category stops at five rows and hands over',
+      (WidgetTester tester) async {
+    for (var day = 1; day <= 7; day++) {
+      repo.recordExpense(
+        merchantName: 'Toko $day',
+        items: 'Barang',
+        amount: 100000,
+        chargedToCategory: 'Bebas',
+        receiptDate: dayMs(day),
+      );
+    }
+    await pumpSummaryTall(tester);
+    await tester.tap(find.text('Bebas').first);
+    await tester.pumpAndSettle();
+
+    // Newest first: days 7..3 fit, days 2 and 1 do not.
+    expect(find.text('Toko 7'), findsOneWidget);
+    expect(find.text('Toko 3'), findsOneWidget);
+    expect(find.text('Toko 2'), findsNothing);
+    expect(find.text('Toko 1'), findsNothing);
+
+    // The caption still reports all seven, not the five on screen, and the link
+    // below is what makes reporting seven honest.
+    expect(find.textContaining('7 transaksi'), findsOneWidget);
+    expect(find.text('Lihat semua di Riwayat'), findsOneWidget);
+  });
+
+  testWidgets('a picked range surfaces the rows too',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+      merchantName: 'Toko A',
+      items: 'Barang',
+      amount: 100000,
+      chargedToCategory: 'Bebas',
+    );
+    await pumpSummaryTall(tester);
+    expect(find.text('TRANSAKSI'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30 hari'));
+    await tester.pumpAndSettle();
+
+    // No category was chosen, yet the rows are here. Narrowing the period is the
+    // same request as narrowing the category, so it gets the same answer.
+    expect(find.text('TRANSAKSI'), findsOneWidget);
+    expect(find.text('Toko A'), findsOneWidget);
+  });
+
+  testWidgets('inline amounts are the attributed share, not the whole receipt',
+      (WidgetTester tester) async {
+    // One shared "Seluruhnya" income. The totals, the per-category table and
+    // these rows must all agree on what Bebas is worth; showing the full receipt
+    // here would contradict both.
+    repo.recordIncome(amount: 300000, chargedToCategory: 'Seluruhnya');
+    await pumpSummaryTall(tester);
+    await tester.tap(find.text('Bebas').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('TRANSAKSI'), findsOneWidget);
+    // Bebas is 20% of the frozen 50/30/20 split, so 300.000 contributes 60.000
+    // to it. Printing the whole receipt would contradict both the total above
+    // and the per-category table, and would make the two look broken.
+    expect(find.text('+Rp 60.000'), findsOneWidget);
+    expect(find.text('+Rp 300.000'), findsNothing);
+    // The section says so out loud, since the row is otherwise surprising.
+    expect(find.text('Nominal mengikuti bagian Bebas saja.'), findsOneWidget);
+  });
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/ledger_filter.dart';
 import '../models/period_summary.dart';
+import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../state/ledger_filter_controller.dart';
 import '../state/main_tab_controller.dart';
@@ -325,6 +326,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   ),
                 ),
 
+                // Which category is in view, above the numbers it changes.
+                // Sitting here rather than below the hero card is the point:
+                // the hero card is tall, and a filter you have to scroll to
+                // reach is a filter that gets forgotten.
+                SliverToBoxAdapter(child: _buildFilterSection(context, repo)),
+
                 // Hero numbers - Editorial pull quote style
                 SliverToBoxAdapter(
                   child: Padding(
@@ -384,22 +391,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   ),
                 ),
 
-                // Filters: which stretch of dates, and which category.
-                SliverToBoxAdapter(child: _buildFilterSection(context, repo)),
-
-                // Send the user to the rows behind the number above.
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                    child: _HistoryLink(
-                      count: summary.recordCount,
-                      note: _category == null
-                          ? null
-                          : 'Nominal mengikuti bagian $_category saja.',
-                      onTap: _openHistory,
-                    ),
+                // The rows behind the number above, on this screen. Narrowing by
+                // category used to end on a separate "Lihat N transaksi" tap, so
+                // picking a pocket cost a scroll down, a tap, a scroll back and
+                // another tap before any transaction was visible.
+                if (_hasNarrowed && summary.recordCount > 0)
+                  SliverToBoxAdapter(
+                    child: _buildInlineList(context, visible),
                   ),
-                ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
@@ -652,6 +651,152 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
+  /// True once the user has narrowed something themselves.
+  ///
+  /// The default month view is not a selection, so it stays as totals plus the
+  /// per-category table. Opening Ringkasan with an uninvited transaction list
+  /// would bury the hero numbers this screen exists to show.
+  bool get _hasNarrowed => _category != null || _isRangeMode;
+
+  /// How many rows [summary] shows before handing over to Riwayat. A category
+  /// held open across all time can carry dozens of rows, and Ringkasan is a
+  /// summary screen, not a second Riwayat.
+  static const int _inlineRowLimit = 5;
+
+  /// The transactions behind the numbers above, on this screen.
+  ///
+  /// [visible] is already re-scaled by [applyLedgerFilter], so each amount here
+  /// is the same figure that produced the total and the row — no second
+  /// attribution rule that could drift from the first.
+  Widget _buildInlineList(
+    BuildContext context,
+    List<TransactionRecord> records,
+  ) {
+    final rows = [...records]
+      ..sort((a, b) => effectiveDate(b).compareTo(effectiveDate(a)));
+    final shown = rows.take(_inlineRowLimit).toList();
+    // The header already states how many rows and over which period. Repeating
+    // the count here would put the same sentence on screen twice, so this line
+    // carries only what the header cannot: that these amounts are the selected
+    // category's share of each receipt, not the receipt.
+    final note =
+        _category == null ? null : 'Nominal mengikuti bagian $_category saja.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TRANSAKSI',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              if (note != null)
+                Text(note, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < shown.length; i++) ...[
+                  _buildInlineRow(context, shown[i]),
+                  if (i < shown.length - 1)
+                    const Divider(color: AppColors.divider, height: 1),
+                ],
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 24, 0),
+          child: TextButton.icon(
+            onPressed: _openHistory,
+            icon: const Icon(Icons.receipt_long_outlined, size: 16),
+            label: const Text('Lihat semua di Riwayat'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// One transaction, read-only.
+  ///
+  /// Deliberately not tappable: a row that looks like it opens something but
+  /// does not is worse than one that plainly does not, and the options sheet
+  /// (edit, archive) lives with Riwayat's rows. The link below is the action.
+  Widget _buildInlineRow(BuildContext context, TransactionRecord record) {
+    final isExpense = record.type == TransactionType.expense;
+    final amount = record.totalAmount.round();
+    final title = isExpense
+        ? (record.merchantName.isEmpty ? record.items : record.merchantName)
+        : (record.items.isEmpty ? 'Pemasukan' : record.items);
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              DateFormat('d MMM', 'id_ID').format(date),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '${isExpense ? '−' : '+'}Rp ${_fmt(amount)}',
+            style: GoogleFonts.nunito(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.01,
+              color: isExpense ? AppColors.expense : AppColors.income,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// The single control that sets the period.
   ///
   /// The dot is not decoration: a hand-picked range is indistinguishable from a
@@ -863,66 +1008,6 @@ class _FilterChip extends StatelessWidget {
                 color: selected ? Colors.white : AppColors.textSecondary,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The affordance that connects a total to the rows behind it. When a category
-/// filter is on it also says so, because a shared "Seluruhnya" row shows only
-/// that category's share and would otherwise look like a wrong amount.
-class _HistoryLink extends StatelessWidget {
-  const _HistoryLink({
-    required this.count,
-    required this.onTap,
-    this.note,
-  });
-
-  final int count;
-  final VoidCallback onTap;
-  final String? note;
-
-  @override
-  Widget build(BuildContext context) {
-    // No rows means no link, and no sentence about transactions either. The
-    // header already shows nothing in that case, so an extra "there are no
-    // transactions here" line would just repeat it.
-    if (count == 0) return const SizedBox.shrink();
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.receipt_long_outlined,
-                size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Lihat $count transaksi',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  if (note != null) ...[
-                    const SizedBox(height: 2),
-                    Text(note!, style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right,
-                size: 18, color: AppColors.textTertiary),
           ],
         ),
       ),
