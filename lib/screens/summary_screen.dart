@@ -2,113 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../models/transaction.dart';
+import '../models/period_summary.dart';
 import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
-
-class _CategoryBalance {
-  final String name;
-  final String colorHex;
-  final int income;
-  final int expense;
-  final bool isActive;
-  int get balance => income - expense;
-
-  _CategoryBalance({
-    required this.name,
-    required this.colorHex,
-    required this.income,
-    required this.expense,
-    this.isActive = true,
-  });
-}
-
-class _MonthlySummary {
-  final int totalIncome;
-  final int totalExpenses;
-  final int netIncome;
-  final Map<String, int> incomeBreakdown;
-  final Map<String, int> expenseBreakdown;
-  final List<_CategoryBalance> categoryBalances;
-
-  _MonthlySummary({
-    required this.totalIncome,
-    required this.totalExpenses,
-    required this.netIncome,
-    required this.incomeBreakdown,
-    required this.expenseBreakdown,
-    required this.categoryBalances,
-  });
-}
-
-_MonthlySummary _calculateMonthlySummary(
-    List<TransactionRecord> records, List<AllocationCategory> categories, DateTime selectedMonth) {
-  int totalIncome = 0;
-  int totalExpenses = 0;
-  final Map<String, int> incomeBreakdown = {};
-  final Map<String, int> expenseBreakdown = {};
-  final Map<String, int> categoryIncome = {};
-  final Map<String, int> categoryExpense = {};
-  final Map<String, String> categoryColors = {};
-
-  for (final cat in categories) {
-    categoryIncome[cat.name] = 0;
-    categoryExpense[cat.name] = 0;
-    categoryColors[cat.name] = cat.colorHex;
-  }
-
-  final thisMonth = DateTime(selectedMonth.year, selectedMonth.month, 1);
-  final nextMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
-
-  for (final record in records) {
-    final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
-    if (date.isBefore(thisMonth) || date.compareTo(nextMonth) >= 0) continue;
-
-    if (record.type == TransactionType.income) {
-      totalIncome += record.totalAmount.toInt();
-      for (final split in record.splits) {
-        final key = split.category.name;
-        incomeBreakdown[key] = (incomeBreakdown[key] ?? 0) + split.allocatedAmount.toInt();
-        categoryIncome[key] = (categoryIncome[key] ?? 0) + split.allocatedAmount.toInt();
-      }
-    } else {
-      totalExpenses += record.totalAmount.toInt();
-      if (record.splits.isNotEmpty) {
-        for (final split in record.splits) {
-          final key = split.category.name;
-          expenseBreakdown[key] = (expenseBreakdown[key] ?? 0) + split.allocatedAmount.toInt();
-          categoryExpense[key] = (categoryExpense[key] ?? 0) + split.allocatedAmount.toInt();
-        }
-      } else {
-        final key = record.chargedTo ?? 'Lainnya';
-        expenseBreakdown[key] = (expenseBreakdown[key] ?? 0) + record.totalAmount.toInt();
-        if (categoryExpense.containsKey(key)) {
-          categoryExpense[key] = (categoryExpense[key] ?? 0) + record.totalAmount.toInt();
-        }
-      }
-    }
-  }
-
-  final balances = <_CategoryBalance>[];
-  for (final cat in categories) {
-    balances.add(_CategoryBalance(
-      name: cat.name,
-      colorHex: cat.colorHex,
-      income: categoryIncome[cat.name] ?? 0,
-      expense: categoryExpense[cat.name] ?? 0,
-      isActive: cat.isActive,
-    ));
-  }
-
-  return _MonthlySummary(
-    totalIncome: totalIncome,
-    totalExpenses: totalExpenses,
-    netIncome: totalIncome - totalExpenses,
-    incomeBreakdown: incomeBreakdown,
-    expenseBreakdown: expenseBreakdown,
-    categoryBalances: balances,
-  );
-}
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -117,8 +13,22 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
+/// Which span of history the Ringkasan screen is showing.
+enum SummaryPeriod {
+  /// One calendar month, chosen with the chevrons.
+  month,
+
+  /// Every month that has at least one record — no month or year ceiling.
+  all,
+}
+
 class _SummaryScreenState extends State<SummaryScreen> {
   DateTime _selectedMonth = DateTime.now();
+  SummaryPeriod _period = SummaryPeriod.month;
+
+  /// The month to aggregate, or null when accumulating everything on record.
+  DateTime? get _windowMonth =>
+      _period == SummaryPeriod.month ? _selectedMonth : null;
 
   String _fmt(int amount) {
     final formatter = NumberFormat('#,##0', 'id_ID');
@@ -153,8 +63,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
       body: SafeArea(
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
-            final summary = _calculateMonthlySummary(repo.history, repo.categories, _selectedMonth);
+            final summary = calculatePeriodSummary(
+              repo.history,
+              repo.categories,
+              month: _windowMonth,
+            );
             final monthName = DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth);
+            final isAllTime = _period == SummaryPeriod.all;
 
             return CustomScrollView(
               slivers: [
@@ -181,20 +96,24 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             GestureDetector(
-                              onTap: _previousMonth,
+                              onTap: isAllTime ? null : _previousMonth,
                               child: Container(
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                  color: Colors.white.withValues(alpha: isAllTime ? 0.1 : 0.2),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                                child: Icon(
+                                  Icons.chevron_left,
+                                  color: isAllTime ? Colors.white38 : Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              monthName.toUpperCase(),
+                              isAllTime ? 'SEMUA PERIODE' : monthName.toUpperCase(),
                               style: GoogleFonts.nunito(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -204,19 +123,55 @@ class _SummaryScreenState extends State<SummaryScreen> {
                             ),
                             const SizedBox(width: 12),
                             GestureDetector(
-                              onTap: _nextMonth,
+                              onTap: isAllTime ? null : _nextMonth,
                               child: Container(
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                  color: Colors.white.withValues(alpha: isAllTime ? 0.1 : 0.2),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                                child: Icon(
+                                  Icons.chevron_right,
+                                  color: isAllTime ? Colors.white38 : Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+
+                        // Period toggle: one month, or every month on record.
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: Row(
+                            children: [
+                              _buildPeriodTab('PER BULAN', SummaryPeriod.month),
+                              _buildPeriodTab('SEMUA', SummaryPeriod.all),
+                            ],
+                          ),
+                        ),
+
+                        // Explain what "SEMUA" actually covers instead of
+                        // leaving the user guessing.
+                        if (isAllTime) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            summary.hasRecords
+                                ? '${summary.monthCount} bulan · ${summary.recordCount} transaksi'
+                                : 'Belum ada pencatatan',
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -288,13 +243,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: Text(
-                        'PER KATEGORI',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textTertiary,
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'PER KATEGORI',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppColors.textTertiary,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isAllTime
+                                ? 'Akumulasi semua periode'
+                                : 'Periode ${monthName.toLowerCase()}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -367,7 +334,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                dimmed ? '${balance.name} (dihapus)' : balance.name,
+                                                dimmed
+                                                    ? '${balance.name} (${balance.isArchived ? 'arsip' : 'nonaktif'})'
+                                                    : balance.name,
                                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                   fontWeight: FontWeight.w600,
                                                   color: dimmed ? Colors.grey.shade600 : null,
@@ -375,7 +344,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                'Rp ${_fmt(balance.income)} − Rp ${_fmt(balance.expense)}',
+                                                balance.isEmpty
+                                                    ? 'Belum ada pencatatan'
+                                                    : 'Rp ${_fmt(balance.income)} − Rp ${_fmt(balance.expense)}',
                                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                                   color: dimmed ? Colors.grey.shade500 : null,
                                                 ),
@@ -422,7 +393,36 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  Widget _buildHeroMetric(
+  /// One half of the PER BULAN / SEMUA toggle in the green header.
+Widget _buildPeriodTab(String label, SummaryPeriod value) {
+  final selected = _period == value;
+  return Expanded(
+    child: GestureDetector(
+      onTap: () => setState(() => _period = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.nunito(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: selected ? AppColors.green : Colors.white,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildHeroMetric(
     BuildContext context, {
     required String label,
     required int amount,
