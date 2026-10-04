@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../models/ledger_filter.dart';
 import '../models/period_summary.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
+import '../state/ledger_filter_controller.dart';
 import '../utils/app_colors.dart';
 import '../widgets/payment_method_field.dart';
 
@@ -125,7 +127,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _showEditDialog(BuildContext context, TransactionRecord record) {
+  void _showEditDialog(BuildContext context, TransactionRecord shown) {
+    // A row in a category-filtered list is a slice of the stored transaction,
+    // not the transaction: applyLedgerFilter re-scales its amount to the
+    // selected category's share and drops the other splits. Handing that slice
+    // to updateTransaction would write the share back over the whole receipt —
+    // a 120.000 share silently replacing the real 600.000. So resolve the stored
+    // record by id first. The id survives the filter, which is what makes this
+    // lookup possible.
+    final original = context
+        .read<BudgetRepository>()
+        .activeHistory
+        .firstWhere((r) => r.id == shown.id, orElse: () => shown);
+    final record = original;
+
     final amountController = TextEditingController(text: record.totalAmount.toString());
     final merchantController = TextEditingController(text: record.merchantName);
     final itemsController = TextEditingController(text: record.items);
@@ -269,9 +284,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Consumer<BudgetRepository>(
-          builder: (context, repo, _) {
-            final history = repo.activeHistory;
+        child: Consumer2<BudgetRepository, LedgerFilterController>(
+          builder: (context, repo, filters, _) {
+            final filter = filters.filter;
+            final all = repo.activeHistory;
+            // Filtered here, against the selection Ringkasan published, rather
+            // than in the repository — so the list and the total above it are
+            // the same slice, and a filtered row can only ever be a view of a
+            // stored record rather than a second source of truth.
+            final history = applyLedgerFilter(all, filter);
 
             return CustomScrollView(
               slivers: [
@@ -300,8 +321,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 // Archived rows are the user's data but not
                                 // their spending, so the count shows only what
                                 // still counts and the archive is surfaced
-                                // further down as its own section.
-                                '${history.length} transaksi',
+                                // further down as its own section. Under a
+                                // filter it also has to say the list is
+                                // narrowed — a bare count would read as the
+                                // whole ledger while showing a slice of it.
+                                filter.isActive
+                                    ? '${history.length} dari ${all.length} transaksi'
+                                    : '${history.length} transaksi',
                                 style: GoogleFonts.nunito(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -325,6 +351,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
 
+                // What the list is currently narrowed to. Without this the
+                // header count alone leaves a filtered list looking like the
+                // whole ledger, and a shared "Seluruhnya" row showing only part
+                // of its amount would look like a wrong figure.
+                if (filter.isActive)
+                  SliverToBoxAdapter(
+                    child: _ActiveFilterBar(
+                      filter: filter,
+                      onClear: () =>
+                          context.read<LedgerFilterController>().clear(),
+                    ),
+                  ),
+
                 // Empty state
                 if (history.isEmpty)
                   SliverFillRemaining(
@@ -347,11 +386,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Belum ada transaksi',
+                            // "Empty" and "nothing matches this filter" are
+                            // different situations and need different words.
+                            // Telling someone they have no transactions when
+                            // they have 76 is worse than silence.
+                            filter.isActive
+                                ? 'Tidak ada transaksi di pilihan ini'
+                                : 'Belum ada transaksi',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textTertiary,
                             ),
                           ),
+                          if (filter.isActive) ...[
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () => context
+                                  .read<LedgerFilterController>()
+                                  .clear(),
+                              child: Text(
+                                'Hapus filter',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: AppColors.green,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -541,7 +604,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                     overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ),
-                                              if (!isExpense && record.splits.isNotEmpty)
+                                              if (!isExpense &&
+                                                  record.splits.isNotEmpty &&
+                                                  // A category filter leaves one
+                                                  // split on the row, so counting
+                                                  // them would report the slice's
+                                                  // shape while the amount above
+                                                  // is the slice's size — telling
+                                                  // the user about a transaction
+                                                  // that does not look like this.
+                                                  !filter.hasCategory)
                                                 Padding(
                                                   padding: const EdgeInsets.only(top: 2),
                                                   child: Text(
@@ -616,6 +688,64 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// States the selection narrowing this list, and offers the way out of it.
+///
+/// The note about category shares is not decoration. Under a category filter a
+/// shared "Seluruhnya" row shows only that category's part of the amount, which
+/// is what makes the list add up to the Ringkasan total — but on its own it
+/// reads as a wrong figure, so it is said out loud.
+class _ActiveFilterBar extends StatelessWidget {
+  const _ActiveFilterBar({required this.filter, required this.onClear});
+
+  final LedgerFilter filter;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.accentTint,
+      padding: const EdgeInsets.fromLTRB(24, 12, 16, 12),
+      child: Row(
+        children: [
+          const Icon(Icons.filter_alt_outlined,
+              size: 18, color: AppColors.accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  filter.describe,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                if (filter.hasCategory) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Nominal mengikuti bagian ${filter.categoryLabel} saja.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onClear,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 36),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }

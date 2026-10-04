@@ -38,14 +38,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
   /// Null means every category.
   String? _category;
 
-  @override
-  void initState() {
-    super.initState();
-    // Riwayat reads this filter from the moment it exists, so publish the
-    // initial selection instead of leaving it unset until the first tap.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _publish());
-  }
-
   LedgerFilter get _filter {
     final base = _range ??
         (_period == SummaryPeriod.month
@@ -59,9 +51,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
         : base.copyWith(categoryName: _category);
   }
 
-  /// Hand the current selection to Riwayat. Ringkasan is the only writer, so
-  /// this is called from tap handlers rather than from build — writing during
-  /// build would notify listeners mid-tree.
+  /// Hand the current selection to Riwayat.
+  ///
+  /// Called only from [_openHistory], never when the selection changes. Riwayat
+  /// is a permanent tab in the same shell, so publishing on every period or
+  /// category change would make its contents depend on which screen the user
+  /// happened to visit last — stepping back a month in Ringkasan would silently
+  /// hide transactions in Riwayat. The selection transfers when it is asked for,
+  /// and Riwayat shows what it received until the filter is cleared.
   void _publish() {
     if (!mounted) return;
     context.read<LedgerFilterController>().setFilter(_filter);
@@ -84,7 +81,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
     });
-    _publish();
   }
 
   void _nextMonth() {
@@ -93,7 +89,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     final nextMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
     if (!nextMonth.isBefore(DateTime(now.year, now.month + 1, 1))) return;
     setState(() => _selectedMonth = nextMonth);
-    _publish();
   }
 
   /// True when [filter] covers exactly one calendar month, which means the
@@ -120,7 +115,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
         _range = next;
       }
     });
-    _publish();
   }
 
   void _applyPeriodTab(SummaryPeriod value) {
@@ -128,12 +122,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
       _period = value;
       _range = null;
     });
-    _publish();
   }
 
   void _applyCategory(String? name) {
     setState(() => _category = name);
-    _publish();
   }
 
   Future<void> _pickCustomRange() async {

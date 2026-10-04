@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import 'transaction.dart';
 import 'period_summary.dart';
 
@@ -42,6 +44,35 @@ class LedgerFilter {
 
   bool get hasPeriod => from != null || to != null;
   bool get hasCategory => categoryName != null;
+
+  /// "semua kategori" reads as a sentence; a null category is not a category.
+  String get categoryLabel => categoryName ?? 'semua kategori';
+
+  /// How the period reads to a person, mixed case.
+  ///
+  /// Lives here rather than in each screen because two screens describing one
+  /// selection differently is how a filter chip ends up claiming a range the
+  /// list does not hold. Same month collapses to "1 - 30 Sep 2026" instead of
+  /// repeating the month name twice.
+  String get periodLabel {
+    if (from == null && to == null) return 'semua periode';
+    if (from == null) return 'sampai ${_day(to!)}';
+    if (to == null) return 'sejak ${_day(from!)}';
+    if (from!.year == to!.year && from!.month == to!.month) {
+      return '${from!.day} - ${_day(to!)}';
+    }
+    return '${_day(from!)} - ${_day(to!)}';
+  }
+
+  /// One phrase covering both axes, for a filter banner.
+  String get describe {
+    if (hasCategory && hasPeriod) return '$categoryLabel · $periodLabel';
+    if (hasCategory) return 'Kategori $categoryLabel';
+    return 'Periode $periodLabel';
+  }
+
+  static String _day(DateTime d) =>
+      DateFormat('d MMM yyyy', 'id_ID').format(d);
 
   /// True when this filter would actually remove something, which is what
   /// decides whether the UI shows a "filter active" chip at all.
