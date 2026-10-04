@@ -106,14 +106,24 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   void _applyPreset(LedgerFilter next) {
     setState(() {
+      // "Semua" is the SEMUA mode, not a range of 2000 to 2100. Taking it as a
+      // literal range made the header print those dates and left the
+      // PER BULAN/SEMUA toggle with neither half lit.
+      if (next == LedgerRanges.allTime()) {
+        _period = SummaryPeriod.all;
+        _range = null;
+        return;
+      }
+      // A range covering exactly one calendar month goes back to month mode, so
+      // picking "Bulan ini" leaves the chevrons live instead of freezing a copy
+      // of this month with the arrows inert.
       if (_isWholeMonth(next)) {
         _range = null;
         _period = SummaryPeriod.month;
         _selectedMonth = DateTime(next.from!.year, next.from!.month, 1);
-      } else {
-        _period = SummaryPeriod.all;
-        _range = next;
+        return;
       }
+      _range = next;
     });
   }
 
@@ -128,8 +138,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     setState(() => _category = name);
   }
 
-  Future<void> _pickCustomRange() async {
-    final initial = _range ?? _filter;
+  Future<void> _openRangeSheet() async {
     final picked = await showModalBottomSheet<LedgerFilter>(
       context: context,
       isScrollControlled: true,
@@ -138,8 +147,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _RangeSheet(
-        from: initial.from,
-        to: initial.to,
+        current: _filter,
         onApply: (from, to) => LedgerFilter(from: from, to: to),
       ),
     );
@@ -233,14 +241,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Ringkasan',
-                          style: GoogleFonts.nunito(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            height: 1.1,
-                            color: Colors.white,
-                          ),
+                        // The title row carries the one control that sets the period, so the
+                        // range is reachable without hunting for it. Matching
+                        // Riwayat's header circle keeps the two screens reading
+                        // as the same app.
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Ringkasan',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            _buildCalendarButton(),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         // Period pill. Rendered in every mode so the affordance
@@ -593,39 +612,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'PERIODE',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.textTertiary,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 34,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                for (var i = 0; i < LedgerRanges.presetLabels.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _FilterChip(
-                      label: LedgerRanges.presetLabels[i],
-                      selected: _matchesPreset(LedgerRanges.preset(i)),
-                      onTap: () => _applyPreset(LedgerRanges.preset(i)),
-                    ),
-                  ),
-                _FilterChip(
-                  label: 'Kustom',
-                  icon: Icons.edit_calendar_outlined,
-                  selected: false,
-                  onTap: _pickCustomRange,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+          // Period is set from the calendar in the header, not from a row here,
+          // so this section is only about which category is in view.
           Text(
             'KATEGORI',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -664,20 +652,50 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  /// True when [preset] is what the screen is already showing. Compared against
-  /// the same range the header would print, so a stepped month lights up the
-  /// matching chip instead of leaving the row looking unselected.
-  bool _matchesPreset(LedgerFilter preset) {
-    if (_isRangeMode) return _range == preset;
-    if (preset.from == null || preset.to == null) {
-      return !_isRangeMode && _period == SummaryPeriod.all;
-    }
-    if (!_canStepMonths) return false;
-    final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    return preset.from!.year == monthStart.year &&
-        preset.from!.month == monthStart.month &&
-        preset.to!.year == monthStart.year &&
-        preset.to!.month == monthStart.month;
+  /// The single control that sets the period.
+  ///
+  /// The dot is not decoration: a hand-picked range is indistinguishable from a
+  /// stepped month in the header pill otherwise, and the pill goes dim once a
+  /// range is active. Without the dot there is no way to tell that the arrows
+  /// have stopped working.
+  Widget _buildCalendarButton() {
+    final active = _isRangeMode;
+    return GestureDetector(
+      onTap: _openRangeSheet,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: active ? 0.34 : 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              active ? Icons.event_available : Icons.calendar_month_outlined,
+              color: Colors.white,
+              size: 22,
+            ),
+            if (active)
+              Positioned(
+                right: 8,
+                top: 9,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: AppColors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _stepButton(IconData icon, VoidCallback onTap) {
@@ -801,14 +819,12 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.dot,
-    this.icon,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final Color? dot;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -836,14 +852,6 @@ class _FilterChip extends StatelessWidget {
                   color: dot,
                   shape: BoxShape.circle,
                 ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 14,
-                color: selected ? Colors.white : AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
             ],
@@ -922,17 +930,23 @@ class _HistoryLink extends StatelessWidget {
   }
 }
 
-/// Two dates and nothing else. The presets cover the ranges people ask for, so
-/// this only has to handle the case where they want something else.
+/// Where the period is chosen.
+///
+/// The presets live in here rather than on the screen itself: "last 30 days" and
+/// "this month" are the ranges people actually ask for, and a sheet holding only
+/// two date fields would be more work for the same result. What the sheet dropped
+/// from the screen is the row of chips competing with the category row for
+/// attention.
 class _RangeSheet extends StatefulWidget {
   const _RangeSheet({
-    required this.from,
-    required this.to,
+    required this.current,
     required this.onApply,
   });
 
-  final DateTime? from;
-  final DateTime? to;
+  /// What Ringkasan is showing now, so the fields open on the selection being
+  /// changed rather than on an unrelated month.
+  final LedgerFilter current;
+
   final LedgerFilter Function(DateTime from, DateTime to) onApply;
 
   @override
@@ -940,8 +954,8 @@ class _RangeSheet extends StatefulWidget {
 }
 
 class _RangeSheetState extends State<_RangeSheet> {
-  late DateTime? _from = widget.from;
-  late DateTime? _to = widget.to;
+  late DateTime? _from = widget.current.from;
+  late DateTime? _to = widget.current.to;
 
   Future<void> _pick({required bool isFrom}) async {
     final now = DateTime.now();
@@ -971,10 +985,18 @@ class _RangeSheetState extends State<_RangeSheet> {
     });
   }
 
+  /// True when [preset] is the range currently in view, so the sheet opens with
+  /// the active choice lit rather than looking unset.
+  bool _isPreset(LedgerFilter preset) {
+    final current = widget.current;
+    if (!current.hasPeriod) return preset == LedgerRanges.allTime();
+    return current.from == preset.from && current.to == preset.to;
+  }
+
   @override
   Widget build(BuildContext context) {
     final ready = _from != null && _to != null;
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
@@ -994,8 +1016,24 @@ class _RangeSheetState extends State<_RangeSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Pilih tanggal awal dan akhir.',
+            'Pilih yang cepat, atau tentukan tanggal sendiri.',
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          // The ranges people ask for first, so picking a period is one tap in
+          // the common case instead of two date picks.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < LedgerRanges.presetLabels.length; i++)
+                _FilterChip(
+                  label: LedgerRanges.presetLabels[i],
+                  selected: _isPreset(LedgerRanges.preset(i)),
+                  onTap: () => Navigator.of(context)
+                      .pop(LedgerRanges.preset(i)),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
           Row(
