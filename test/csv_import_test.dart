@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hyper_budget_flutter/models/transaction.dart';
 import 'package:hyper_budget_flutter/repositories/budget_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -102,6 +103,57 @@ lanjutan barang",2026-06-19,2026-08-22,00:25:41,Bebas,
       expect(imported, 1);
       expect(repo.lastImportFailedLines, isEmpty);
       expect(repo.history.first.items, 'Beli barang\nlanjutan barang');
+    });
+
+    test('income notes round-trip through export and stay income', () async {
+      repo.recordIncome(
+        amount: 5000000,
+        chargedToCategory: allCategoriesLabel,
+        notes: 'Gajian bulan Agustus',
+      );
+      repo.recordExpense(
+        merchantName: 'Toko',
+        items: 'Belanja',
+        amount: 250000,
+        chargedToCategory: 'Bebas',
+      );
+
+      final exported = repo.exportToCsv();
+      // The income row must stay identifiable as income even though its note
+      // reads like prose — that is what the marker is for.
+      expect(exported, contains('Gajian bulan Agustus (Pemasukan)'));
+
+      final fresh = BudgetRepository();
+      SharedPreferences.setMockInitialValues({});
+      await fresh.init();
+      final imported = fresh.importFromCsv(exported);
+      expect(imported, 2);
+      expect(fresh.lastImportFailedLines, isEmpty);
+
+      final income =
+          fresh.history.firstWhere((t) => t.type == TransactionType.income);
+      expect(income.items, 'Gajian bulan Agustus');
+      expect(income.totalAmount, 5000000);
+      // The frozen split must survive the trip too.
+      expect(income.splits.fold<double>(0, (s, sp) => s + sp.allocatedAmount),
+          5000000);
+    });
+
+    test('an income note containing expense-ish words stays income', () async {
+      repo.recordIncome(
+        amount: 100000,
+        chargedToCategory: 'Tabungan',
+        notes: 'uang tunai dari KTP',
+      );
+      final exported = repo.exportToCsv();
+
+      final fresh = BudgetRepository();
+      SharedPreferences.setMockInitialValues({});
+      await fresh.init();
+      fresh.importFromCsv(exported);
+      final back = fresh.history.first;
+      expect(back.type, TransactionType.income);
+      expect(back.items, 'uang tunai dari KTP');
     });
   });
 }

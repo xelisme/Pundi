@@ -151,9 +151,14 @@ class BudgetRepository extends ChangeNotifier {
     ];
   }
 
+  /// Record income. [notes] is a free-form remark ("gajian", "bonus penjualan")
+  /// and is stored in the same `items` column expenses use, so income and
+  /// expense rows stay symmetrical all the way through history, summary and
+  /// CSV without a second parallel field.
   void recordIncome({
     required double amount,
     required String chargedToCategory,
+    String notes = '',
   }) {
     List<CategorySplitResult> splits;
     Map<String, double> snapshot = const {};
@@ -176,7 +181,7 @@ class BudgetRepository extends ChangeNotifier {
       splits: splits,
       type: TransactionType.income,
       merchantName: '',
-      items: '',
+      items: notes,
       receiptDate: DateTime.now().millisecondsSinceEpoch,
       chargedTo: chargedToCategory,
       allocationSnapshot: snapshot,
@@ -563,7 +568,12 @@ class BudgetRepository extends ChangeNotifier {
     for (final record in _history) {
       final toko = _escapeCsv(record.merchantName.isEmpty ? 'Manual Input' : record.merchantName);
       final total = record.totalAmount.toInt();
-      final items = _escapeCsv(record.items.isEmpty ? (record.type == TransactionType.income ? '${record.rawInput} (Pemasukan)' : record.rawInput) : record.items);
+      // Income rows ALWAYS carry the "(Pemasukan)" marker, even when they
+      // have notes — importFromCsv uses it to tell income from expense, so a
+      // note that happens to read like an expense must not flip the row's type.
+      final items = record.type == TransactionType.income
+          ? _escapeCsv('${record.items.isEmpty ? record.rawInput : record.items} (Pemasukan)')
+          : _escapeCsv(record.items.isEmpty ? record.rawInput : record.items);
       final tanggalStruk = record.receiptDate > 0 
           ? DateTime.fromMillisecondsSinceEpoch(record.receiptDate).toIso8601String().substring(0, 10)
           : DateTime.fromMillisecondsSinceEpoch(record.timestamp).toIso8601String().substring(0, 10);

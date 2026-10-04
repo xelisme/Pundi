@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _inputController = TextEditingController();
   final _merchantController = TextEditingController();
   final _itemsController = TextEditingController();
+  final _incomeNotesController = TextEditingController();
   bool _isExpense = false;
   String? _selectedChargedTo; // untuk expense
   String? _selectedIncomeTarget; // untuk income
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _inputController.dispose();
     _merchantController.dispose();
     _itemsController.dispose();
+    _incomeNotesController.dispose();
     super.dispose();
   }
 
@@ -58,9 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
             !repo.activeCategories.any((c) => c.name == _selectedIncomeTarget))
         ? allCategoriesLabel
         : (_selectedIncomeTarget ?? allCategoriesLabel);
-    repo.recordIncome(amount: amount, chargedToCategory: target);
+    repo.recordIncome(
+      amount: amount,
+      chargedToCategory: target,
+      notes: _incomeNotesController.text.trim(),
+    );
 
     _inputController.clear();
+    _incomeNotesController.clear();
     setState(() => _selectedIncomeTarget = null);
 
     _showSnackBar(context, 'Pemasukan Rp ${_fmt(amount)} dicatat');
@@ -615,8 +622,42 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.textTertiary,
                     ),
                   ),
+
                   const SizedBox(height: 24),
-                  
+
+                  Text(
+                    'CATATAN (OPSIONAL)',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textTertiary,
+                      letterSpacing: 0.8,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border, width: 1),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _incomeNotesController,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                      decoration: const InputDecoration(
+                        hintText: 'Gajian, bonus penjualan, dll',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
                   Text(
                     'POS ALOKASI',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(

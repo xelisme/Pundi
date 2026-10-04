@@ -142,15 +142,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: itemsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Item',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                     ],
+                    // Income stores its note in the same column, so both
+                    // record types get one editable free-text field.
+                    TextField(
+                      controller: itemsController,
+                      decoration: InputDecoration(
+                        labelText: isExpense ? 'Item' : 'Catatan',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: amountController,
                       decoration: const InputDecoration(
@@ -481,6 +483,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                     fontWeight: FontWeight.w600,
                                                     color: color,
+                                                  ),
+                                                ),
+                                              // Notes work for income too — same
+                                              // column expenses use.
+                                              if (!isExpense && record.items.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 2),
+                                                  child: Text(
+                                                    record.items,
+                                                    style: Theme.of(context).textTheme.bodySmall,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               if (!isExpense && record.splits.isNotEmpty)
