@@ -570,6 +570,37 @@ class BudgetRepository extends ChangeNotifier {
     ];
   }
 
+  /// Parse a date cell from a CSV, optionally with a separate time-of-day cell.
+  ///
+  /// Returns [fallback] when the cell is empty or unparseable, so one malformed
+  /// date never takes down an entire import.
+  int _parseCsvDate(String cell, {String? waktu, int? fallback}) {
+    final raw = cell.trim();
+    if (raw.isEmpty) return fallback ?? DateTime.now().millisecondsSinceEpoch;
+    try {
+      final dateOnly = DateTime.parse(raw);
+      final parts = (waktu ?? '').trim().split(':').map(int.tryParse).toList();
+      if (parts.length < 2 || parts[0] == null || parts[1] == null) {
+        return dateOnly.millisecondsSinceEpoch;
+      }
+      final hour = parts[0]!;
+      final minute = parts[1]!;
+      final second = parts.length > 2 && parts[2] != null ? parts[2]! : 0;
+      // Reuse the date's y/m/d and take the time-of-day from the other cell, so
+      // "2026-10-01" + "12:51:57" yields that exact instant rather than midnight.
+      return DateTime(
+        dateOnly.year,
+        dateOnly.month,
+        dateOnly.day,
+        hour,
+        minute,
+        second,
+      ).millisecondsSinceEpoch;
+    } catch (_) {
+      return fallback ?? DateTime.now().millisecondsSinceEpoch;
+    }
+  }
+
   String exportToCsv() {
     final buffer = StringBuffer();
     buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran');
@@ -661,16 +692,39 @@ class BudgetRepository extends ChangeNotifier {
           toko.toLowerCase().contains('pemasukan') ||
           (chargedTo != 'Bebas' && items.toLowerCase().contains('uang'));
 
-      int receiptDate;
-      try {
-        receiptDate = DateTime.parse(tanggalStruk).millisecondsSinceEpoch;
-      } catch (_) {
-        receiptDate = DateTime.now().millisecondsSinceEpoch;
-      }
+      // Two dates, two jobs:
+      //   receiptDate  — when the money actually moved (Tanggal Struk). This is
+      //                  what a month total is built from.
+      //   timestamp    — when the row was keyed in (Tanggal Input + Waktu
+      //                  Input). Order-by and "Struk: ..." display only.
+      //
+      // Both must come from the file. Stamping either with DateTime.now()
+      // collapses every imported month into the import month, which is what
+      // made Ringkasan totals wrong after a CSV import.
+      final receiptDate =
+          _parseCsvDate(tanggalStruk, fallback: DateTime.now().millisecondsSinceEpoch);
+      // Fall back to the receipt instant when the file has no input date, so a
+      // row is never filed under an unrelated month.
+      final inputDate = _parseCsvDate(
+        parts.length > 4 ? parts[4] : '',
+        waktu: parts.length > 5 ? parts[5] : '',
+        fallback: receiptDate,
+      );
 
       final merchantName = toko == 'Manual Input' ? '' : toko;
-      final cleanItems =
+      var cleanItems =
           items.replaceAll(RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false), '');
+      // Older exports wrote the amount into the Items column when an income row
+      // had no note ("107000.0 (Pemasukan)"), so re-importing those files put
+      // the amount on screen as if the user had typed it. A cleaned value that
+      // is exactly the row total is that artefact, not a note.
+      if (isIncome && cleanItems.trim().isNotEmpty) {
+        final asNumber = double.tryParse(cleanItems.trim().replaceAll(',', ''));
+        if (asNumber != null && (asNumber - total).abs() < 0.005) {
+          cleanItems = '';
+        }
+      }
+      cleanItems = cleanItems.trim();
 
       List<CategorySplitResult> splits;
       Map<String, double> snapshot;
@@ -694,6 +748,7 @@ class BudgetRepository extends ChangeNotifier {
       }
 
       final record = TransactionRecord(
+        timestamp: inputDate,
         rawInput: isIncome ? total.toString() : cleanItems,
         totalAmount: total,
         splits: splits,

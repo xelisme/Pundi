@@ -1,5 +1,14 @@
 import 'transaction.dart';
 
+/// The date a transaction belongs to when bucketing by period.
+///
+/// Receipt date wins whenever it exists. A 30-Sep receipt that was only keyed
+/// in on 1 Oct is September spending, and summing it into October is exactly
+/// the kind of drift that makes a budget untrustworthy. Falls back to the input
+/// timestamp for rows that carry no receipt date at all.
+int effectiveDate(TransactionRecord record) =>
+    record.receiptDate > 0 ? record.receiptDate : record.timestamp;
+
 /// Income minus expense for a single category over one period.
 class CategoryBalance {
   final String name;
@@ -80,8 +89,8 @@ class PeriodSummary {
 /// to accumulate every record on file — no month or year ceiling — which is
 /// what the "SEMUA" period shows.
 ///
-/// A record belongs to the month of its *input* timestamp, not its receipt
-/// date, which is how the month selector has always behaved.
+/// A record is filed under the month of [effectiveDate] — its receipt date when
+/// it has one, otherwise when it was keyed in. See [effectiveDate].
 PeriodSummary calculatePeriodSummary(
   List<TransactionRecord> records,
   List<AllocationCategory> categories, {
@@ -110,7 +119,7 @@ PeriodSummary calculatePeriodSummary(
   }
 
   for (final record in records) {
-    final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
+    final date = DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
     if (windowStart != null &&
         (date.isBefore(windowStart) || date.compareTo(windowEnd!) >= 0)) {
       continue;

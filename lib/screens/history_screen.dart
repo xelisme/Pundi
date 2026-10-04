@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../models/period_summary.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
@@ -402,7 +403,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               final index = entry.key;
                               final record = entry.value;
                               final isExpense = record.type == TransactionType.expense;
-                              final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
+                              // Group and label rows by when the money moved, the
+                              // same basis Ringkasan sums on. Using the input
+                              // timestamp here made a 30-Sep receipt keyed in on
+                              // 1 Oct appear under October in one screen and
+                              // September in the other.
+                              final date = DateTime.fromMillisecondsSinceEpoch(
+                                  effectiveDate(record));
                               final color = isExpense ? AppColors.expense : AppColors.income;
 
                               return Column(
@@ -441,15 +448,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                 DateFormat('HH:mm', 'id_ID').format(date),
                                                 style: Theme.of(context).textTheme.bodySmall,
                                               ),
-                                              if (record.receiptDate > 0 && record.receiptDate != record.timestamp)
+                                              // The row is now dated by the receipt, so when the two differ it is the keyed-in
+                                              // date worth surfacing — that is the one the user may want to
+                                              // double-check.
+                                              if (record.receiptDate > 0 &&
+                                                  record.receiptDate !=
+                                                      record.timestamp)
                                                 Padding(
-                                                  padding: const EdgeInsets.only(top: 2),
+                                                  padding:
+                                                      const EdgeInsets.only(top: 2),
                                                   child: Text(
-                                                    'Struk: ${DateFormat('dd MMM', 'id_ID').format(DateTime.fromMillisecondsSinceEpoch(record.receiptDate))}',
-                                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                                      color: AppColors.textTertiary,
-                                                      fontSize: 10,
-                                                    ),
+                                                    'Diinput ${DateFormat('dd MMM', 'id_ID').format(DateTime.fromMillisecondsSinceEpoch(record.timestamp))}',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.copyWith(
+                                                          color: AppColors
+                                                              .textTertiary,
+                                                          fontSize: 10,
+                                                        ),
                                                   ),
                                                 ),
                                             ],
