@@ -191,6 +191,54 @@ void main() {
     expect(repo.purgeArchived(), 0, reason: 'nothing left to purge');
   });
 
+  test('purging empties the archive of categories too, not just transactions',
+      () {
+    // Charged to Tabungan so archiving Bebas needs no reassignment.
+    repo.recordExpense(
+      merchantName: 'KFC',
+      items: 'kfc',
+      amount: 100000,
+      chargedToCategory: 'Tabungan',
+    );
+    repo.archiveTransaction(repo.history.single.id);
+    expect(
+        repo.archiveCategory(
+            repo.categories.firstWhere((c) => c.name == 'Bebas').id),
+        true);
+
+    expect(repo.archivedHistory, hasLength(1));
+    expect(repo.archivedCategories, hasLength(1));
+
+    // The count has to cover both, because the confirmation dialog promises
+    // both are destroyed. Returning only the transactions made the dialog lie.
+    expect(repo.purgeArchived(), 2);
+    expect(repo.history, isEmpty);
+    expect(repo.archivedCategories, isEmpty,
+        reason: 'an archived category must not survive "Kosongkan Arsip"');
+  });
+
+  test('purging keeps non-archived categories and live transactions', () {
+    repo.recordExpense(
+      merchantName: 'KFC',
+      items: 'kfc',
+      amount: 100000,
+      chargedToCategory: 'Bebas',
+    );
+    repo.recordIncome(
+      amount: 500000,
+      chargedToCategory: 'Tabungan',
+      notes: 'Gajian',
+    );
+    repo.archiveTransaction(repo.history.first.id);
+
+    expect(repo.purgeArchived(), 1);
+    expect(repo.history, hasLength(1),
+        reason: 'a live transaction must survive an archive purge');
+    expect(repo.categories, hasLength(3),
+        reason: 'only ARCHIVED categories are destroyed, never active ones');
+    expect(repo.archivedCategories, isEmpty);
+  });
+
   test('archived rows survive a CSV round trip without rejoining the totals',
       () async {
     repo.recordExpense(

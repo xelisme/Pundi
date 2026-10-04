@@ -7,11 +7,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/transaction.dart';
-import '../models/period_summary.dart';
 import '../repositories/budget_repository.dart';
+import '../screens/archive_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_info.dart';
 import '../widgets/edit_category_dialog.dart';
+import '../widgets/restore_actions.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -217,7 +218,12 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
-// Nonaktif + archived categories — both restorable.
+// Deactivated categories — restorable, but not deleted.
+            //
+            // Only nonaktif lives here. Anything the user *deleted* is on the
+            // Arsip screen behind the row below, because that list grows with
+            // every deletion and this screen is meant to stay a fixed set of
+            // settings.
             //
             // This MUST be a Consumer, not context.read: context.read does not
             // register a dependency, so a soft-delete / archive / restore would
@@ -228,51 +234,37 @@ class SettingsScreen extends StatelessWidget {
                   final inactive = repo.categories
                       .where((c) => !c.isActive && !c.isArchived)
                       .toList();
-                  final archived = repo.archivedCategories;
-                  final archivedTx = repo.archivedHistory;
-                  if (inactive.isEmpty &&
-                      archived.isEmpty &&
-                      archivedTx.isEmpty) {
+                  if (inactive.isEmpty) {
                     return const SizedBox.shrink();
                   }
-                  // One gap between every card, so the category and transaction
-                  // archives sit in one "things you can bring back" block
-                  // rather than looking like unrelated panels.
-                  final cards = <Widget>[
-                    if (inactive.isNotEmpty)
-                      _CategoryRecoveryCard(
-                        title: 'KATEGORI NONAKTIF',
-                        hint: 'Riwayat tetap tersimpan',
-                        categories: inactive,
-                        onRestore: (c) =>
-                            _confirmRestoreCategory(context, c),
-                      ),
-                    if (archived.isNotEmpty)
-                      _CategoryRecoveryCard(
-                        title: 'ARSIP KATEGORI',
-                        hint: 'Dihapus — masih bisa dipulihkan',
-                        categories: archived,
-                        onRestore: (c) =>
-                            _confirmRestoreCategory(context, c),
-                      ),
-                    if (archivedTx.isNotEmpty)
-                      _TransactionRecoveryCard(
-                        transactions: archivedTx,
-                        onRestore: (record) => _confirmRestoreTransaction(
-                          context,
-                          record,
-                        ),
-                      ),
-                  ];
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < cards.length; i++) ...[
-                          if (i > 0) const SizedBox(height: 16),
-                          cards[i],
-                        ],
-                      ],
+                    child: _CategoryRecoveryCard(
+                      title: 'KATEGORI NONAKTIF',
+                      hint: 'Riwayat tetap tersimpan',
+                      categories: inactive,
+                      onRestore: (c) => confirmRestoreCategory(context, c),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // One row, always the same height, whatever has been deleted. The
+            // count is the only thing that changes, so the user can tell there
+            // is something to recover without opening a screen full of records.
+            SliverToBoxAdapter(
+              child: Consumer<BudgetRepository>(
+                builder: (context, repo, _) {
+                  final total = repo.archivedHistory.length +
+                      repo.archivedCategories.length;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                    child: _ArchiveEntryRow(
+                      count: total,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ArchiveScreen()),
+                      ),
                     ),
                   );
                 },
@@ -590,81 +582,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _confirmRestoreCategory(BuildContext context, AllocationCategory category) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(
-          'Pulihkan Kategori?',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        content: Text(
-          'Kategori "${category.name}" akan aktif kembali dan riwayat transaksinya kembali muncul di alokasi.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final reactivated =
-                  context.read<BudgetRepository>().restoreCategory(category.id);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(reactivated
-                      ? 'Kategori "${category.name}" dipulihkan'
-                      : 'Kategori "${category.name}" dipulihkan ke nonaktif — alokasi 100% sudah penuh'),
-                  backgroundColor:
-                      reactivated ? AppColors.green : AppColors.warning,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.green,
-              foregroundColor: AppColors.surfaceWhite,
-            ),
-            child: const Text('Pulihkan'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Restore an archived transaction.
-  ///
-  /// No confirmation dialog here, unlike restoring a category. A category
-  /// restore has a side effect worth a beat — its transactions reappear in the
-  /// allocation — whereas this is pure undo: the record goes back exactly where
-  /// it was and can be archived again instantly. A dialog in front of a
-  /// reversible action is just a second thing to dismiss.
-  void _confirmRestoreTransaction(
-      BuildContext context, TransactionRecord record) {
-    final repo = context.read<BudgetRepository>();
-    if (!repo.restoreTransaction(record.id)) return;
-    final amount =
-        NumberFormat('#,##0', 'id_ID').format(record.totalAmount.round());
-    final label = record.merchantName.isNotEmpty
-        ? record.merchantName
-        : (record.items.isNotEmpty ? record.items : 'Pemasukan');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label · Rp $amount dipulihkan'),
-        backgroundColor: AppColors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   void _confirmReset(BuildContext context) {
     showDialog(
       context: context,
@@ -972,155 +889,87 @@ class _CategoryRecoveryCard extends StatelessWidget {
   }
 }
 
-/// Copyright + license footer, last thing in Pengaturan.
+/// The one Pengaturan row that leads to the Arsip screen.
 ///
-/// Deliberately quiet: one muted line with the notice, and the license name as
-/// the only tappable part. Nothing here competes with the settings actions
-/// above it, but the full grant is one tap away and selectable.
-/// The transaction archive, shown next to the category archive.
-///
-/// Deliberately not reusing [_CategoryRecoveryCard]. A category row is a bare
-/// name, but a transaction row carries a date, a direction and an amount that
-/// no longer counts — so the two archives cannot share a row shape without one
-/// of them lying about something. The rail is coloured per type instead of the
-/// grey used for categories, which is the cue that this list holds records
-/// rather than labels, and the amount is struck through to say "this is real,
-/// just out of the maths".
-class _TransactionRecoveryCard extends StatelessWidget {
-  final List<TransactionRecord> transactions;
-  final ValueChanged<TransactionRecord> onRestore;
+/// Separate from [_SettingsAction] because it carries a count, and that count
+/// is the point: it is the only thing in this screen that changes as the user
+/// deletes more, so the screen itself stays a fixed set of rows. The row is the
+/// same size whether the archive holds one record or two hundred.
+class _ArchiveEntryRow extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
 
-  const _TransactionRecoveryCard({
-    required this.transactions,
-    required this.onRestore,
-  });
+  const _ArchiveEntryRow({required this.count, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+    return Material(
+      color: AppColors.surfaceWhite,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'ARSIP TRANSAKSI',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textTertiary,
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                Text(
-                  // Naming the consequence in the header means nobody has to
-                  // tap a row to find out whether archived money still counts.
-                  'Tidak dihitung',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: AppColors.textTertiary),
-                ),
-              ],
-            ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
-          ...transactions.asMap().entries.map((entry) {
-            final index = entry.key;
-            final record = entry.value;
-            final isExpense = record.type == TransactionType.expense;
-            final title = record.merchantName.isNotEmpty
-                ? record.merchantName
-                : (record.items.isNotEmpty ? record.items : 'Pemasukan');
-            final date = DateTime.fromMillisecondsSinceEpoch(
-              effectiveDate(record),
-            );
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 3,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isExpense
-                              ? AppColors.expense
-                              : AppColors.income,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textSecondary,
-                                  ),
-                            ),
-                            Text(
-                              '${DateFormat('dd MMM yyyy', 'id_ID').format(date)}'
-                              ' · ${isExpense ? 'Pengeluaran' : 'Pemasukan'}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.textTertiary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Rp ${NumberFormat('#,##0', 'id_ID').format(record.totalAmount.round())}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textTertiary,
-                              decoration: TextDecoration.lineThrough,
-                              decorationColor: AppColors.textTertiary,
-                            ),
-                      ),
-                      const SizedBox(width: 4),
-                      TextButton(
-                        onPressed: () => onRestore(record),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text('PULIHKAN'),
-                      ),
-                    ],
-                  ),
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                if (index < transactions.length - 1)
-                  Divider(color: AppColors.divider, height: 1),
-              ],
-            );
-          }),
-        ],
+                child: Icon(Icons.inventory_2_outlined,
+                    color: AppColors.accent, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Arsip',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      count == 0
+                          ? 'Belum ada yang dihapus'
+                          : '$count catatan bisa dipulihkan',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                            color: count == 0
+                                ? AppColors.textTertiary
+                                : AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+/// Copyright + license footer, last thing in Pengaturan.
+///
+/// Deliberately quiet: one muted line with the notice, and the license name as
+/// the only tappable part. Nothing here competes with the settings actions
+/// above it, but the full grant is one tap away and selectable.
 class _AboutFooter extends StatelessWidget {
   final String notice;
   final String version;

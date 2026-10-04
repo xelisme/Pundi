@@ -275,14 +275,27 @@ class BudgetRepository extends ChangeNotifier {
 
   /// Empty the archive for good. Separated from archiving because it is the one
   /// destructive path left, and it is never reachable from a single-record tap.
+  ///
+  /// Empties the archive of BOTH kinds of record. A version that only dropped
+  /// archived transactions left archived categories sitting in the archive,
+  /// which meant the confirmation dialog promised a category would disappear
+  /// and it did not. Either the archive empties or the button is a lie.
   int purgeArchived() {
-    final before = _history.length;
+    final beforeTx = _history.length;
     _history = _history.where((r) => !r.isArchived).toList();
-    final removed = before - _history.length;
-    if (removed > 0) {
-      _saveHistoryLocal();
-      notifyListeners();
-    }
+    final removedTx = beforeTx - _history.length;
+
+    // Every archived category goes. archiveCategory() forces a reassignment
+    // before it archives, so no surviving transaction's splits can still point
+    // at one — there is no reachable state where keeping it would be safer.
+    final beforeCats = _categories.length;
+    _categories = _categories.where((c) => !c.isArchived).toList();
+    final removedCats = beforeCats - _categories.length;
+
+    final removed = removedTx + removedCats;
+    if (removedTx > 0) _saveHistoryLocal();
+    if (removedCats > 0) _saveCategoriesLocal();
+    if (removed > 0) notifyListeners();
     return removed;
   }
 

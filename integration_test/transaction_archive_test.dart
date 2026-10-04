@@ -60,13 +60,13 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Arsipkan'));
     await tester.pumpAndSettle();
 
-    // Live rows are gone. Riwayat must NOT show the archive — it lives in
-    // Pengaturan now, and a leftover section here would mean the move was only
-    // half done.
+    // Live rows are gone. Riwayat must NOT show the archive — it has its own
+    // screen now, reached from Pengaturan, and a leftover section here would
+    // mean the move was only half done.
     expect(find.text('0 transaksi'), findsOneWidget,
         reason: 'an archived row must leave the live count');
-    expect(find.text('ARSIP TRANSAKSI'), findsNothing,
-        reason: 'the archive list belongs to Pengaturan, not Riwayat');
+    expect(find.text('TRANSAKSI'), findsNothing,
+        reason: 'the archive list lives on its own screen, not in Riwayat');
 
     // --- Beranda total must have moved, not just the row count -------------
     await tester.tap(find.text('Beranda'));
@@ -84,16 +84,31 @@ void main() {
         reason: 'Ringkasan reads a different list; it must agree with Beranda');
     expect(find.text(net(0)), findsWidgets);
 
-    // --- Restore it, from Pengaturan --------------------------------------
+    // --- Restore it, from the dedicated Arsip screen ---------------------
     await tester.tap(find.text('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('ARSIP TRANSAKSI'), 200);
-    expect(find.text('Tidak dihitung'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Arsip'), 200);
+    expect(find.text('1 catatan bisa dipulihkan'), findsOneWidget,
+        reason: 'Pengaturan shows a count, not a growing list of records');
+    expect(find.text('Almaz'), findsNothing,
+        reason: 'the record itself must not leak onto the settings screen');
+
+    await tester.tap(find.text('Arsip'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('TRANSAKSI'), 200);
+    expect(find.text('Tidak masuk perhitungan'), findsOneWidget);
     await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('ARSIP TRANSAKSI'), findsNothing,
-        reason: 'the empty archive section must disappear again');
+    expect(find.text('Arsip kosong'), findsOneWidget,
+        reason: 'an emptied archive shows an empty state, not a bare page');
+
+    // Explicit BackButton, not pageBack(): the Arsip screen is pushed under a
+    // Material AppBar, and pageBack() only knows how to find the Cupertino one.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Belum ada yang dihapus'), findsOneWidget,
+        reason: 'the Pengaturan row count must fall back to its empty wording');
 
     await tester.tap(find.text('Riwayat'));
     await tester.pumpAndSettle();
@@ -133,10 +148,13 @@ void main() {
 
     expect(repo.activeHistory.map((t) => t.merchantName), ['C', 'A']);
 
-    // Restore happens in Pengaturan, not here.
+    // Restore happens on the Arsip screen, not in Riwayat.
     await tester.tap(find.text('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('ARSIP TRANSAKSI'), 200);
+    await tester.scrollUntilVisible(find.text('Arsip'), 200);
+    await tester.tap(find.text('Arsip'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('TRANSAKSI'), 200);
     expect(find.text('B'), findsOneWidget);
     await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
