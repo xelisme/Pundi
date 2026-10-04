@@ -59,10 +59,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                _confirmDelete(context, record);
+                _confirmArchive(context, record);
               },
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Hapus Transaksi'),
+              label: const Text('Arsipkan Transaksi'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.error,
                 side: BorderSide(color: AppColors.error),
@@ -80,12 +80,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, TransactionRecord record) {
+  void _confirmArchive(BuildContext context, TransactionRecord record) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus Transaksi?'),
-        content: const Text('Transaksi ini akan dihapus secara permanen.'),
+        title: const Text('Arsipkan Transaksi?'),
+        content: const Text(
+          'Transaksi ini dipindahkan ke Arsip dan dikeluarkan dari semua '
+          'perhitungan. Bisa dipulihkan kapan saja dari Riwayat.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -93,20 +96,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              context.read<BudgetRepository>().deleteTransaction(record.id);
+              final repo = context.read<BudgetRepository>();
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Transaksi berhasil dihapus'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+              if (repo.archiveTransaction(record.id)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Transaksi diarsipkan'),
+                    backgroundColor: AppColors.success,
+                    // The undo lives here rather than in a separate screen,
+                    // because the common case is a mis-tap seconds ago.
+                    action: SnackBarAction(
+                      label: 'Urungkan',
+                      textColor: AppColors.surfaceWhite,
+                      onPressed: () => repo.restoreTransaction(record.id),
+                    ),
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: AppColors.surfaceWhite,
             ),
-            child: const Text('Hapus'),
+            child: const Text('Arsipkan'),
           ),
         ],
       ),
@@ -259,7 +271,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: SafeArea(
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
-            final history = repo.history;
+            final history = repo.activeHistory;
+            final archived = repo.archivedHistory;
 
             return CustomScrollView(
               slivers: [
@@ -285,6 +298,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
+                                // Archived rows are the user's data but not
+                                // their spending, so the count shows only what
+                                // still counts and the archive is surfaced
+                                // further down as its own section.
                                 '${history.length} transaksi',
                                 style: GoogleFonts.nunito(
                                   fontSize: 14,
@@ -596,10 +613,136 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                // Arsip. Only rendered when something is actually in it, so
+                // the common case keeps exactly the layout it had before.
+                if (archived.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 18, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ARSIP',
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${archived.length} transaksi tidak dihitung',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverList.builder(
+                    itemCount: archived.length,
+                    itemBuilder: (context, index) {
+                      final record = archived[index];
+                      return _buildArchiveRow(context, record);
+                    },
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                ],
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  /// One row inside the Arsip section: enough to identify the entry, dimmed so
+  /// it reads as out of circulation, plus a restore control. No tap-to-menu —
+  /// an archived row's only useful action is putting it back, so that is the
+  /// only thing offered.
+  Widget _buildArchiveRow(BuildContext context, TransactionRecord record) {
+    final isExpense = record.type == TransactionType.expense;
+    final date = DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
+    final title = record.merchantName.isNotEmpty
+        ? record.merchantName
+        : (record.items.isNotEmpty ? record.items : 'Pemasukan');
+
+    return Container(
+      color: AppColors.surfaceWhite,
+      child: Column(
+        children: [
+          Divider(color: AppColors.divider, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${DateFormat('dd MMM yyyy', 'id_ID').format(date)} · '
+                        '${isExpense ? 'Pengeluaran' : 'Pemasukan'}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(color: AppColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${isExpense ? '−' : '+'} Rp ${_fmt(record.totalAmount)}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textTertiary,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: AppColors.textTertiary,
+                      ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    final repo = context.read<BudgetRepository>();
+                    if (repo.restoreTransaction(record.id)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Transaksi dipulihkan'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.unarchive_outlined, size: 18),
+                  label: const Text('Pulihkan'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.accent,
+                    side: const BorderSide(color: AppColors.accent),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

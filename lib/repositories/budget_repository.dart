@@ -19,6 +19,16 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> get categories => _categories;
   List<TransactionRecord> get history => _history;
 
+  /// Records that still count. Every total in the app reads this, never
+  /// [history], so an archived entry is genuinely out of the maths rather than
+  /// merely hidden behind a filter.
+  List<TransactionRecord> get activeHistory =>
+      _history.where((r) => !r.isArchived).toList();
+
+  /// Archived records, newest first, for the Riwayat "Arsip" section.
+  List<TransactionRecord> get archivedHistory =>
+      _history.where((r) => r.isArchived).toList();
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _loadCategoriesLocal();
@@ -233,10 +243,47 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void deleteTransaction(String transactionId) {
-    _history = _history.where((r) => r.id != transactionId).toList();
+  /// Archive a transaction instead of destroying it.
+  ///
+  /// The row survives untouched — same id, same position, same fields — so
+  /// [restoreTransaction] puts it back exactly where it was and nothing about
+  /// the entry can drift in the meantime. Returns false when the id is unknown
+  /// or already archived, so a double-tap cannot report a success that did
+  /// nothing.
+  bool archiveTransaction(String transactionId) {
+    final idx = _history.indexWhere((r) => r.id == transactionId);
+    if (idx < 0 || _history[idx].isArchived) return false;
+    _history[idx] = _history[idx].copyWith(isArchived: true);
     _saveHistoryLocal();
     notifyListeners();
+    return true;
+  }
+
+  /// Bring an archived transaction back, in place.
+  ///
+  /// Restoring in place rather than prepending matters: a transaction that sat
+  /// between two others on a given day should return to that spot, not jump to
+  /// the top of Riwayat and change how the user reads their own history.
+  bool restoreTransaction(String transactionId) {
+    final idx = _history.indexWhere((r) => r.id == transactionId);
+    if (idx < 0 || !_history[idx].isArchived) return false;
+    _history[idx] = _history[idx].copyWith(isArchived: false);
+    _saveHistoryLocal();
+    notifyListeners();
+    return true;
+  }
+
+  /// Empty the archive for good. Separated from archiving because it is the one
+  /// destructive path left, and it is never reachable from a single-record tap.
+  int purgeArchived() {
+    final before = _history.length;
+    _history = _history.where((r) => !r.isArchived).toList();
+    final removed = before - _history.length;
+    if (removed > 0) {
+      _saveHistoryLocal();
+      notifyListeners();
+    }
+    return removed;
   }
 
   void clearHistory() {
@@ -379,35 +426,19 @@ class BudgetRepository extends ChangeNotifier {
           final snapshot = adjusted.isNotEmpty
               ? adjusted
               : _snapshotPercentages();
-          return TransactionRecord(
-            id: t.id,
-            timestamp: t.timestamp,
-            rawInput: t.rawInput,
-            totalAmount: t.totalAmount,
+          return t.copyWith(
             splits: _splitBySnapshot(t.totalAmount, snapshot),
-            type: t.type,
-            merchantName: t.merchantName,
-            items: t.items,
-            receiptDate: t.receiptDate,
             chargedTo: reassignTo,
-            paymentMethod: t.paymentMethod,
             allocationSnapshot: snapshot,
           );
         }
         // Reassign 100% to the chosen active category.
         final target = _categories.firstWhere((c) => c.name == reassignTo);
-        return TransactionRecord(
-          id: t.id,
-          timestamp: t.timestamp,
-          rawInput: t.rawInput,
-          totalAmount: t.totalAmount,
-          splits: [CategorySplitResult(category: target, allocatedAmount: t.totalAmount)],
-          type: t.type,
-          merchantName: t.merchantName,
-          items: t.items,
-          receiptDate: t.receiptDate,
+        return t.copyWith(
+          splits: [
+            CategorySplitResult(category: target, allocatedAmount: t.totalAmount)
+          ],
           chargedTo: reassignTo,
-          paymentMethod: t.paymentMethod,
           allocationSnapshot: const {},
         );
       }).toList();
@@ -463,18 +494,10 @@ class BudgetRepository extends ChangeNotifier {
           : <CategorySplitResult>[];
     }
 
-    _history[idx] = TransactionRecord(
-      id: old.id,
-      timestamp: old.timestamp,
-      rawInput: old.rawInput,
+    _history[idx] = old.copyWith(
       totalAmount: old.totalAmount,
       splits: splits,
-      type: old.type,
-      merchantName: old.merchantName,
-      items: old.items,
-      receiptDate: old.receiptDate,
       chargedTo: newChargedTo,
-      paymentMethod: old.paymentMethod,
       allocationSnapshot: old.allocationSnapshot,
     );
     _saveHistoryLocal();
@@ -512,18 +535,14 @@ class BudgetRepository extends ChangeNotifier {
           : old.splits;
     }
 
-    _history[idx] = TransactionRecord(
-      id: old.id,
-      timestamp: old.timestamp,
-      rawInput: old.rawInput,
+    _history[idx] = old.copyWith(
       totalAmount: amount,
       splits: splits,
-      type: old.type,
-      merchantName: newMerchantName ?? old.merchantName,
-      items: newItems ?? old.items,
-      receiptDate: newReceiptDate ?? old.receiptDate,
+      merchantName: newMerchantName,
+      items: newItems,
+      receiptDate: newReceiptDate,
       chargedTo: chargedTo,
-      paymentMethod: newPaymentMethod ?? old.paymentMethod,
+      paymentMethod: newPaymentMethod,
       allocationSnapshot: snapshot,
     );
     _saveHistoryLocal();
@@ -603,8 +622,13 @@ class BudgetRepository extends ChangeNotifier {
 
   String exportToCsv() {
     final buffer = StringBuffer();
-    buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran');
-    
+    buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran,Arsip');
+
+    // Deliberately _history, not activeHistory: an archived row is still the
+    // user's data, and dropping it here would make "export lalu install ulang"
+    // a silent way to lose it. Column 10 carries the flag so a re-import
+    // returns the record to the archive instead of quietly restoring it into
+    // the totals.
     for (final record in _history) {
       final toko = _escapeCsv(record.merchantName.isEmpty ? 'Manual Input' : record.merchantName);
       final total = record.totalAmount.toInt();
@@ -627,7 +651,7 @@ class BudgetRepository extends ChangeNotifier {
           .join(';');
       
       // Appended last so older 8-column exports keep importing unchanged.
-      buffer.writeln('$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,$chargedTo,$snapshotStr,${_escapeCsv(record.paymentMethod)}');
+      buffer.writeln('$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,$chargedTo,$snapshotStr,${_escapeCsv(record.paymentMethod)},${record.isArchived ? 'Ya' : 'Tidak'}');
     }
     
     return buffer.toString();
@@ -687,6 +711,13 @@ class BudgetRepository extends ChangeNotifier {
       final paymentMethod = (parts.length > 8 && parts[8].trim().isNotEmpty)
           ? parts[8].trim()
           : defaultPaymentMethod;
+      // Column 9 (optional): archive flag, "Ya"/"Tidak". Files written before
+      // archiving existed have no 10th column; those rows were all live, so an
+      // absent value means not archived rather than archived.
+      final archivedRaw =
+          (parts.length > 9 ? parts[9].trim() : '').toLowerCase();
+      final isArchived =
+          archivedRaw == 'ya' || archivedRaw == 'y' || archivedRaw == 'true';
 
       final isIncome = items.toLowerCase().contains('pemasukan') ||
           toko.toLowerCase().contains('pemasukan') ||
@@ -759,6 +790,7 @@ class BudgetRepository extends ChangeNotifier {
         chargedTo: chargedTo,
         paymentMethod: paymentMethod,
         allocationSnapshot: snapshot,
+        isArchived: isArchived,
       );
       _history = [record, ..._history];
       imported++;

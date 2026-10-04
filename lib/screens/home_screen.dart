@@ -280,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     int totalIncome = 0;
                     int totalExpenses = 0;
 
-                    for (final record in repo.history) {
+                    for (final record in repo.activeHistory) {
                       if (record.type == TransactionType.income) {
                         totalIncome += record.totalAmount.toInt();
                       } else {

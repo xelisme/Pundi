@@ -64,7 +64,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
             final summary = calculatePeriodSummary(
-              repo.history,
+              repo.activeHistory,
               repo.categories,
               month: _windowMonth,
             );

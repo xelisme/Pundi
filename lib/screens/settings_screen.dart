@@ -740,17 +740,21 @@ class SettingsScreen extends StatelessWidget {
       // Write CSV to temporary file
       final file = File(filePath);
       await file.writeAsString(csv);
+
+      // Count what was actually written, including archived rows. Quoting the
+      // CSV length keeps the two in step if the exporter ever changes shape.
+      final csvRowCount = repo.history.length;
       
       // Share the file using share_plus
       final result = await Share.shareXFiles(
         [XFile(filePath)],
-        text: 'Export Pundi - ${repo.history.length} transaksi',
+        text: 'Export Pundi - $csvRowCount transaksi',
       );
       
       if (context.mounted && result.status == ShareResultStatus.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('CSV berhasil diekspor: ${repo.history.length} transaksi'),
+            content: Text('CSV berhasil diekspor: $csvRowCount transaksi'),
             backgroundColor: AppColors.income,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

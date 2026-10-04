@@ -131,6 +131,13 @@ class TransactionRecord {
   // category transactions ignore this entirely.
   final Map<String, double> allocationSnapshot;
 
+  // Set when the user deletes this entry. An archived record keeps its row and
+  // every field forever but drops out of every total, so a mis-click is always
+  // reversible. Distinct from a category's `isActive`, which only hides a label
+  // while the money keeps counting — an archived transaction must actually stop
+  // counting, or "Sisa Bersih" would still be wrong after a delete.
+  final bool isArchived;
+
   TransactionRecord({
     String? id,
     int? timestamp,
@@ -144,9 +151,40 @@ class TransactionRecord {
     this.chargedTo,
     this.paymentMethod = defaultPaymentMethod,
     this.allocationSnapshot = const {},
+    this.isArchived = false,
   })  : id = id ?? _uuid.v4(),
         timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch,
         receiptDate = receiptDate ?? DateTime.now().millisecondsSinceEpoch;
+
+  /// Copy carrying one or two changed fields. Every site that rebuilds a record
+  /// by hand must copy `isArchived` too, otherwise editing an archived entry
+  /// would silently resurrect it into the totals.
+  TransactionRecord copyWith({
+    double? totalAmount,
+    String? merchantName,
+    String? items,
+    int? receiptDate,
+    String? chargedTo,
+    String? paymentMethod,
+    List<CategorySplitResult>? splits,
+    Map<String, double>? allocationSnapshot,
+    bool? isArchived,
+  }) =>
+      TransactionRecord(
+        id: id,
+        timestamp: timestamp,
+        rawInput: rawInput,
+        totalAmount: totalAmount ?? this.totalAmount,
+        splits: splits ?? this.splits,
+        type: type,
+        merchantName: merchantName ?? this.merchantName,
+        items: items ?? this.items,
+        receiptDate: receiptDate ?? this.receiptDate,
+        chargedTo: chargedTo ?? this.chargedTo,
+        paymentMethod: paymentMethod ?? this.paymentMethod,
+        allocationSnapshot: allocationSnapshot ?? this.allocationSnapshot,
+        isArchived: isArchived ?? this.isArchived,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -161,6 +199,7 @@ class TransactionRecord {
         'chargedTo': chargedTo,
         'paymentMethod': paymentMethod,
         'allocationSnapshot': allocationSnapshot,
+        'isArchived': isArchived,
       };
 
   factory TransactionRecord.fromJson(Map<String, dynamic> json) =>
@@ -187,5 +226,8 @@ class TransactionRecord {
         allocationSnapshot: (json['allocationSnapshot'] as Map? ?? {}).map(
           (k, v) => MapEntry(k as String, (v as num).toDouble()),
         ),
+        // Absent in data written before archiving existed; those records were
+        // all still live, so defaulting to false is the correct reading.
+        isArchived: json['isArchived'] as bool? ?? false,
       );
 }

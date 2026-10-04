@@ -138,7 +138,9 @@ void main() {
     expect(csv.split('\n').first, contains('Metode Pembayaran'));
     // Trailing column => an older 8-column file still imports.
     final headerColumns = csv.split('\n').first.split(',').length;
-    expect(headerColumns, 9);
+    expect(headerColumns, 10,
+        reason: 'Metode Pembayaran plus the Arsip column appended after it, '
+            'both trailing so older files keep importing');
 
     final fresh = BudgetRepository();
     SharedPreferences.setMockInitialValues({});
