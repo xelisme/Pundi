@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
+import '../widgets/payment_method_field.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -116,6 +117,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final merchantController = TextEditingController(text: record.merchantName);
     final itemsController = TextEditingController(text: record.items);
     String? selectedChargedTo = record.chargedTo;
+    var selectedPaymentMethod = record.paymentMethod;
     DateTime editReceiptDate = DateTime.fromMillisecondsSinceEpoch(record.receiptDate);
 
     showDialog(
@@ -153,6 +155,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: PaymentMethodField(
+                        value: selectedPaymentMethod,
+                        onChanged: (v) =>
+                            setDialogState(() => selectedPaymentMethod = v),
+                      ),
+                    ),
                     TextField(
                       controller: amountController,
                       decoration: const InputDecoration(
@@ -218,6 +228,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     newItems: itemsController.text,
                     newChargedTo: selectedChargedTo,
                     newReceiptDate: editReceiptDate.millisecondsSinceEpoch,
+                    newPaymentMethod: selectedPaymentMethod,
                   );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -503,6 +514,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                   child: Text(
                                                     '${record.splits.length} alokasi',
                                                     style: Theme.of(context).textTheme.bodySmall,
+                                                  ),
+                                                ),
+                                              // Payment method, for both record
+                                              // types — a muted last line so it
+                                              // stays secondary to merchant /
+                                              // notes / allocation.
+                                              if (record.paymentMethod.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 2),
+                                                  child: Text(
+                                                    record.paymentMethod,
+                                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                                      color: AppColors.textTertiary,
+                                                    ),
                                                   ),
                                                 ),
                                             ],

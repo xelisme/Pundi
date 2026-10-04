@@ -159,6 +159,7 @@ class BudgetRepository extends ChangeNotifier {
     required double amount,
     required String chargedToCategory,
     String notes = '',
+    String paymentMethod = defaultPaymentMethod,
   }) {
     List<CategorySplitResult> splits;
     Map<String, double> snapshot = const {};
@@ -184,6 +185,7 @@ class BudgetRepository extends ChangeNotifier {
       items: notes,
       receiptDate: DateTime.now().millisecondsSinceEpoch,
       chargedTo: chargedToCategory,
+      paymentMethod: paymentMethod,
       allocationSnapshot: snapshot,
     );
     _history = [record, ..._history];
@@ -197,6 +199,7 @@ class BudgetRepository extends ChangeNotifier {
     required double amount,
     required String chargedToCategory,
     int? receiptDate,
+    String paymentMethod = defaultPaymentMethod,
   }) {
     List<CategorySplitResult> splits;
     Map<String, double> snapshot = const {};
@@ -222,6 +225,7 @@ class BudgetRepository extends ChangeNotifier {
       items: items,
       receiptDate: receiptDate ?? DateTime.now().millisecondsSinceEpoch,
       chargedTo: chargedToCategory,
+      paymentMethod: paymentMethod,
       allocationSnapshot: snapshot,
     );
     _history = [record, ..._history];
@@ -386,6 +390,7 @@ class BudgetRepository extends ChangeNotifier {
             items: t.items,
             receiptDate: t.receiptDate,
             chargedTo: reassignTo,
+            paymentMethod: t.paymentMethod,
             allocationSnapshot: snapshot,
           );
         }
@@ -402,6 +407,7 @@ class BudgetRepository extends ChangeNotifier {
           items: t.items,
           receiptDate: t.receiptDate,
           chargedTo: reassignTo,
+          paymentMethod: t.paymentMethod,
           allocationSnapshot: const {},
         );
       }).toList();
@@ -468,6 +474,7 @@ class BudgetRepository extends ChangeNotifier {
       items: old.items,
       receiptDate: old.receiptDate,
       chargedTo: newChargedTo,
+      paymentMethod: old.paymentMethod,
       allocationSnapshot: old.allocationSnapshot,
     );
     _saveHistoryLocal();
@@ -481,6 +488,7 @@ class BudgetRepository extends ChangeNotifier {
     String? newItems,
     String? newChargedTo,
     int? newReceiptDate,
+    String? newPaymentMethod,
   }) {
     final idx = _history.indexWhere((t) => t.id == transactionId);
     if (idx < 0) return;
@@ -515,6 +523,7 @@ class BudgetRepository extends ChangeNotifier {
       items: newItems ?? old.items,
       receiptDate: newReceiptDate ?? old.receiptDate,
       chargedTo: chargedTo,
+      paymentMethod: newPaymentMethod ?? old.paymentMethod,
       allocationSnapshot: snapshot,
     );
     _saveHistoryLocal();
@@ -563,7 +572,7 @@ class BudgetRepository extends ChangeNotifier {
 
   String exportToCsv() {
     final buffer = StringBuffer();
-    buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot');
+    buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran');
     
     for (final record in _history) {
       final toko = _escapeCsv(record.merchantName.isEmpty ? 'Manual Input' : record.merchantName);
@@ -586,7 +595,8 @@ class BudgetRepository extends ChangeNotifier {
           .map((e) => '${e.key}:${e.value.toInt()}')
           .join(';');
       
-      buffer.writeln('$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,$chargedTo,$snapshotStr');
+      // Appended last so older 8-column exports keep importing unchanged.
+      buffer.writeln('$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,$chargedTo,$snapshotStr,${_escapeCsv(record.paymentMethod)}');
     }
     
     return buffer.toString();
@@ -641,6 +651,11 @@ class BudgetRepository extends ChangeNotifier {
       // "Tabungan:50;Investasi:30;Bebas:20". Empty/old files -> use fallback.
       final snapshotRaw = parts.length > 7 ? parts[7].trim() : '';
       final importedSnapshot = _parseSnapshot(snapshotRaw);
+      // Column 8 (optional): payment method. Files exported before this field
+      // existed simply have no 9th column and fall back to the default.
+      final paymentMethod = (parts.length > 8 && parts[8].trim().isNotEmpty)
+          ? parts[8].trim()
+          : defaultPaymentMethod;
 
       final isIncome = items.toLowerCase().contains('pemasukan') ||
           toko.toLowerCase().contains('pemasukan') ||
@@ -687,6 +702,7 @@ class BudgetRepository extends ChangeNotifier {
         items: cleanItems,
         receiptDate: receiptDate,
         chargedTo: chargedTo,
+        paymentMethod: paymentMethod,
         allocationSnapshot: snapshot,
       );
       _history = [record, ..._history];

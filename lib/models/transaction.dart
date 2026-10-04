@@ -4,6 +4,22 @@ const _uuid = Uuid();
 
 const String allCategoriesLabel = 'Seluruhnya';
 
+/// Payment methods offered when recording a transaction.
+///
+/// Stored as a plain String on the record rather than an enum, so adding or
+/// renaming a method never needs a data migration for existing installs.
+const List<String> paymentMethods = [
+  'Tunai',
+  'QRIS',
+  'Transfer Bank',
+  'Kartu Debit',
+  'Kartu Kredit',
+  'E-Wallet',
+  'Lainnya',
+];
+
+const String defaultPaymentMethod = 'Tunai';
+
 enum TransactionType { income, expense }
 
 class AllocationCategory {
@@ -107,6 +123,9 @@ class TransactionRecord {
   final String items;
   final int receiptDate;
   final String? chargedTo;
+  // How the money moved ("QRIS", "Tunai", ...). Free-form so unknown values
+  // from an imported CSV survive a round-trip untouched.
+  final String paymentMethod;
   // Frozen allocation percentages (category name -> percentage) captured at
   // creation time. Only meaningful for "Seluruhnya" transactions; explicit
   // category transactions ignore this entirely.
@@ -123,6 +142,7 @@ class TransactionRecord {
     this.items = '',
     int? receiptDate,
     this.chargedTo,
+    this.paymentMethod = defaultPaymentMethod,
     this.allocationSnapshot = const {},
   })  : id = id ?? _uuid.v4(),
         timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch,
@@ -139,6 +159,7 @@ class TransactionRecord {
         'items': items,
         'receiptDate': receiptDate,
         'chargedTo': chargedTo,
+        'paymentMethod': paymentMethod,
         'allocationSnapshot': allocationSnapshot,
       };
 
@@ -161,6 +182,8 @@ class TransactionRecord {
         items: json['items'] as String? ?? '',
         receiptDate: json['receiptDate'] as int?,
         chargedTo: json['chargedTo'] as String?,
+        paymentMethod:
+            json['paymentMethod'] as String? ?? defaultPaymentMethod,
         allocationSnapshot: (json['allocationSnapshot'] as Map? ?? {}).map(
           (k, v) => MapEntry(k as String, (v as num).toDouble()),
         ),

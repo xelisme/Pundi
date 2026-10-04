@@ -8,6 +8,7 @@ import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
 import '../widgets/radial_allocation_viz.dart';
 import '../widgets/duolingo_button.dart';
+import '../widgets/payment_method_field.dart';
 import 'history_screen.dart';
 import 'summary_screen.dart';
 
@@ -26,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isExpense = false;
   String? _selectedChargedTo; // untuk expense
   String? _selectedIncomeTarget; // untuk income
+  String _incomePaymentMethod = defaultPaymentMethod;
+  String _expensePaymentMethod = defaultPaymentMethod;
   DateTime _receiptDate = DateTime.now();
 
   @override
@@ -64,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       amount: amount,
       chargedToCategory: target,
       notes: _incomeNotesController.text.trim(),
+      paymentMethod: _incomePaymentMethod,
     );
 
     _inputController.clear();
@@ -103,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       amount: amount,
       chargedToCategory: chargedTo,
       receiptDate: _receiptDate.millisecondsSinceEpoch,
+      paymentMethod: _expensePaymentMethod,
     );
 
     _inputController.clear();
@@ -629,8 +634,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     'CATATAN (OPSIONAL)',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.textTertiary,
-                      letterSpacing: 0.8,
-                      fontSize: 10,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -654,6 +659,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const PaymentMethodLabel(),
+                  const SizedBox(height: 12),
+                  PaymentMethodField(
+                    value: _incomePaymentMethod,
+                    onChanged: (v) => setState(() => _incomePaymentMethod = v),
                   ),
 
                   const SizedBox(height: 24),
@@ -910,6 +924,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   );
                 },
+              ),
+
+              const SizedBox(height: 24),
+
+              const SizedBox(height: 24),
+
+              const PaymentMethodLabel(),
+              const SizedBox(height: 12),
+              PaymentMethodField(
+                value: _expensePaymentMethod,
+                onChanged: (v) => setState(() => _expensePaymentMethod = v),
               ),
 
               const SizedBox(height: 24),
