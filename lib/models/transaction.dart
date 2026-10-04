@@ -16,6 +16,10 @@ class AllocationCategory {
   // Soft-delete flag. When false the category is hidden from active use but
   // its historical transactions still show in summaries (greyed out).
   final bool isActive;
+  // Archive flag. Archiving is the terminal step of deletion: the category is
+  // out of the way (hidden from every list) but the row is NEVER destroyed, so
+  // it can always be brought back. Always implies isActive == false.
+  final bool isArchived;
 
   AllocationCategory({
     String? id,
@@ -25,6 +29,7 @@ class AllocationCategory {
     this.iconName = 'account_balance_wallet',
     this.description = '',
     this.isActive = true,
+    this.isArchived = false,
   }) : id = id ?? _uuid.v4();
 
   Map<String, dynamic> toJson() => {
@@ -35,6 +40,7 @@ class AllocationCategory {
         'iconName': iconName,
         'description': description,
         'isActive': isActive,
+        'isArchived': isArchived,
       };
 
   factory AllocationCategory.fromJson(Map<String, dynamic> json) =>
@@ -46,6 +52,7 @@ class AllocationCategory {
         iconName: json['iconName'] as String? ?? 'account_balance_wallet',
         description: json['description'] as String? ?? '',
         isActive: json['isActive'] as bool? ?? true,
+        isArchived: json['isArchived'] as bool? ?? false,
       );
 
   AllocationCategory copyWith({
@@ -56,6 +63,7 @@ class AllocationCategory {
     String? iconName,
     String? description,
     bool? isActive,
+    bool? isArchived,
   }) =>
       AllocationCategory(
         id: id ?? this.id,
@@ -65,6 +73,7 @@ class AllocationCategory {
         iconName: iconName ?? this.iconName,
         description: description ?? this.description,
         isActive: isActive ?? this.isActive,
+        isArchived: isArchived ?? this.isArchived,
       );
 }
 

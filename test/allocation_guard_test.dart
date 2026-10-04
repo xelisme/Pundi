@@ -43,17 +43,22 @@ void main() {
   test('RED bugD: explicit tx reassigned to Seluruhnya keeps full allocation', () {
     repo.recordExpense(merchantName: 'T', items: 'x', amount: 5000, chargedToCategory: 'Investasi');
     final id = repo.categories.firstWhere((c) => c.name == 'Investasi').id;
-    repo.permanentlyDeleteCategory(id, reassignTo: allCategoriesLabel);
+    repo.archiveCategory(id, reassignTo: allCategoriesLabel);
     // Explicit tx had 100% to Investasi (5000). After reassign to Seluruhnya it
     // must STILL be fully allocated (5000), not 0.
     expect(totalAllocated(), 5000);
+    // The archived category must receive NONE of that money. Archiving runs
+    // before the re-split precisely so it cannot sneak back in.
+    expect(
+        repo.history.first.splits.any((sp) => sp.category.name == 'Investasi'),
+        false);
   });
 
   // ---- BUG C (no longer a bug; captured as a regression guard) ----
   test('Seluruhnya tx stays fully allocated after a category is permanently deleted', () {
     repo.recordIncome(amount: 5000, chargedToCategory: allCategoriesLabel); // snapshot 50/30/20
     final id = repo.categories.firstWhere((c) => c.name == 'Investasi').id;
-    repo.permanentlyDeleteCategory(id, reassignTo: 'Tabungan');
+    repo.archiveCategory(id, reassignTo: 'Tabungan');
     // Reassigned to Tabungan -> 5000 fully allocated to Tabungan.
     expect(totalAllocated(), 5000);
   });

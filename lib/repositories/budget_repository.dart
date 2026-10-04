@@ -240,15 +240,22 @@ class BudgetRepository extends ChangeNotifier {
   List<AllocationCategory> get activeCategories =>
       _categories.where((c) => c.isActive).toList();
 
+  // Archived categories are out of the way but still recoverable.
+  List<AllocationCategory> get archivedCategories =>
+      _categories.where((c) => c.isArchived).toList();
+
   void addCategory(AllocationCategory category) {
-    // If a soft-deleted category with the same name exists, restore it
-    // (reactivate + update fields) instead of creating a duplicate.
+    // If a soft-deleted or archived category with the same name exists, revive
+    // it (reactivate + un-archive) instead of creating a duplicate. The revived
+    // row keeps its id and colour so historical splits still line up.
     final existing = _categories
         .where((c) => !c.isActive && c.name.toLowerCase() == category.name.toLowerCase())
         .firstOrNull;
     if (existing != null) {
       _categories = _categories
-          .map((c) => c.id == existing.id ? existing.copyWith(isActive: true) : c)
+          .map((c) => c.id == existing.id
+              ? existing.copyWith(isActive: true, isArchived: false)
+              : c)
           .toList();
       _saveCategoriesLocal();
       notifyListeners();
@@ -277,10 +284,11 @@ class BudgetRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Soft delete: mark inactive instead of removing, so historical transactions
-  // in summaries are preserved (greyed out) and can be restored later.
-  // A soft-deleted category can NOT receive new income/expense (the input
-  // dropdowns only list activeCategories), but its past transactions remain.
+  // Soft delete (stage 1 of 2): mark inactive instead of archiving, so the
+  // category stays visible in the "dihapus" list and can be reactivated with
+  // one tap. A soft-deleted category can NOT receive new income/expense (the
+  // input dropdowns only list activeCategories), but its past transactions
+  // remain.
   void deleteCategory(String id) {
     if (activeCategories.length <= 1) return; // keep at least one active
     _categories = _categories
@@ -306,30 +314,47 @@ class BudgetRepository extends ChangeNotifier {
           (t.chargedTo == allCategoriesLabel &&
               t.allocationSnapshot.containsKey(cat.name));
 
-  // Permanent delete: remove the category entirely and reassign ALL of its
-  // transactions to another (active) category. `reassignTo` is REQUIRED when
-  // the category still has transactions, so no money/record is silently lost.
-  // If the category has zero transactions, it is simply removed.
-  //
-  // A category is considered to "have transactions" if any transaction is
-  // explicitly charged to it OR is a "Seluruhnya" transaction whose frozen
-  // snapshot included this category (so its money must be redistributed).
-  bool permanentlyDeleteCategory(String id, {String? reassignTo}) {
+  /// Archive a category — the terminal step of deletion (stage 2 of 2).
+  ///
+  /// The row is NEVER destroyed: it is flagged `isArchived` and drops out of
+  /// every list, but `restoreCategory` can always bring it back. All of its
+  /// transactions are reassigned first so no money or record is lost, and
+  /// `reassignTo` is REQUIRED whenever the category has transactions.
+  ///
+  /// A category counts as "having transactions" if any transaction is
+  /// explicitly charged to it OR is a "Seluruhnya" transaction whose frozen
+  /// snapshot included it (so its money must be redistributed).
+  bool archiveCategory(String id, {String? reassignTo}) {
     final cat = _categories.where((c) => c.id == id).firstOrNull;
     if (cat == null) return false;
-    if (_categories.length <= 1) return false; // keep at least one category
+    if (cat.isArchived) return false; // already archived
+    // Keep at least one usable category around.
+    if (_categories.where((c) => !c.isArchived).length <= 1) return false;
 
     final txCount = _history.where(_referencesCategory(cat)).length;
 
     if (txCount > 0) {
       // Reassignment is mandatory when transactions exist.
       if (reassignTo == null || reassignTo.isEmpty) return false;
+      if (reassignTo == cat.name) return false; // never onto itself
       if (reassignTo != allCategoriesLabel) {
         final target = _categories
             .where((c) => c.name == reassignTo && c.isActive)
             .firstOrNull;
         if (target == null) return false; // must reassign to a real active cat
       }
+    }
+
+    // Archive FIRST so that re-splitting below cannot route money back into
+    // `cat` — _snapshotPercentages() must already exclude it.
+    _categories = _categories
+        .map((c) => c.id == id
+            ? c.copyWith(isActive: false, isArchived: true)
+            : c)
+        .toList();
+    _saveCategoriesLocal();
+
+    if (txCount > 0) {
       // Reassign every transaction that references this category:
       //  - explicit-label tx (chargedTo == cat.name), or
       //  - "Seluruhnya" tx whose frozen snapshot included this category.
@@ -378,27 +403,32 @@ class BudgetRepository extends ChangeNotifier {
       _saveHistoryLocal();
     }
 
-    _categories = _categories.where((c) => c.id != id).toList();
-    _saveCategoriesLocal();
     notifyListeners();
     return true;
   }
 
-  // Restore a previously soft-deleted category. Refused (no-op) if restoring
-  // would push total ACTIVE allocation above 100% (the UI also guards this,
-  // but this protects CSV-import / programmatic paths).
-  void restoreCategory(String id) {
+  /// Bring a soft-deleted OR archived category back.
+  ///
+  /// Un-archiving is unconditional — an archived category always returns to the
+  /// "dihapus" list so it can never be stranded. Re-activating it as well is
+  /// conditional: refused when that would push total ACTIVE allocation above
+  /// 100%. Returns true when the category is active again, false when it came
+  /// back but stayed inactive (no budget headroom).
+  bool restoreCategory(String id) {
     final target = _categories.where((c) => c.id == id).firstOrNull;
-    if (target == null || target.isActive) return;
-    final others = activeCategories;
+    if (target == null || (target.isActive && !target.isArchived)) return false;
     final newTotal =
-        others.fold<double>(0, (s, c) => s + c.percentage) + target.percentage;
-    if (newTotal > 100.0001) return; // refused; would exceed 100%
+        activeCategories.fold<double>(0, (s, c) => s + c.percentage) +
+            target.percentage;
+    final canActivate = newTotal <= 100.0001;
     _categories = _categories
-        .map((c) => c.id == id ? c.copyWith(isActive: true) : c)
+        .map((c) => c.id == id
+            ? c.copyWith(isActive: canActivate, isArchived: false)
+            : c)
         .toList();
     _saveCategoriesLocal();
     notifyListeners();
+    return canActivate;
   }
 
   void updateTransactionChargedTo(String transactionId, String newChargedTo) {

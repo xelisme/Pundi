@@ -215,92 +215,49 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-            // Deleted (soft-deleted) categories — restorable
-            if (context.read<BudgetRepository>().categories.any((c) => !c.isActive))
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border, width: 1),
-                    ),
+// Nonaktif + archived categories — both restorable.
+            //
+            // This MUST be a Consumer, not context.read: context.read does not
+            // register a dependency, so a soft-delete / archive / restore would
+            // never make these sections appear or disappear.
+            SliverToBoxAdapter(
+              child: Consumer<BudgetRepository>(
+                builder: (context, repo, _) {
+                  final inactive = repo.categories
+                      .where((c) => !c.isActive && !c.isArchived)
+                      .toList();
+                  final archived = repo.archivedCategories;
+                  if (inactive.isEmpty && archived.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                          child: Text(
-                            'KATEGORI DIHAPUS',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.textTertiary,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        if (inactive.isNotEmpty)
+                          _CategoryRecoveryCard(
+                            title: 'KATEGORI NONAKTIF',
+                            hint: 'Riwayat tetap tersimpan',
+                            categories: inactive,
+                            onRestore: (c) =>
+                                _confirmRestoreCategory(context, c),
                           ),
-                        ),
-                        ...context.read<BudgetRepository>().categories.where((c) => !c.isActive).map((category) {
-                          return Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 3,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade400,
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            category.name,
-                                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Riwayat tetap tersimpan',
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                              color: Colors.grey.shade500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => _confirmRestoreCategory(context, category),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppColors.green,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: const Text('PULIHKAN'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (category != context.read<BudgetRepository>().categories.where((c) => !c.isActive).last)
-                                Divider(color: AppColors.divider, height: 1),
-                            ],
-                          );
-                        }),
+                        if (inactive.isNotEmpty && archived.isNotEmpty)
+                          const SizedBox(height: 16),
+                        if (archived.isNotEmpty)
+                          _CategoryRecoveryCard(
+                            title: 'ARSIP',
+                            hint: 'Dihapus — masih bisa dipulihkan',
+                            categories: archived,
+                            onRestore: (c) =>
+                                _confirmRestoreCategory(context, c),
+                          ),
                       ],
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
+            ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
@@ -427,7 +384,7 @@ class SettingsScreen extends StatelessWidget {
         content: Text(
           'Pilih salah satu:\n\n'
           '• Nonaktifkan — kategori disembunyikan, riwayat tetap ada & bisa dipulihkan. Tidak bisa terima transaksi baru.\n\n'
-          '• Hapus Permanen${txCount > 0 ? ' — $txCount transaksi akan dipindahkan ke kategori lain (wajib pilih)' : ' — tidak ada transaksi, kategori dihapus langsung'}.',
+          '• Arsipkan${txCount > 0 ? ' — $txCount transaksi akan dipindahkan ke kategori lain (wajib pilih)' : ' — tidak ada transaksi, langsung masuk arsip'}. Kategori tidak hilang, masih bisa dipulihkan dari Arsip.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
@@ -457,20 +414,20 @@ class SettingsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _confirmPermanentDelete(context, category);
+              _confirmArchiveCategory(context, category);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: AppColors.surfaceWhite,
             ),
-            child: const Text('Hapus Permanen'),
+            child: const Text('Arsipkan'),
           ),
         ],
       ),
     );
   }
 
-  void _confirmPermanentDelete(BuildContext context, AllocationCategory category) {
+  void _confirmArchiveCategory(BuildContext context, AllocationCategory category) {
     final repo = context.read<BudgetRepository>();
     final txCount = repo.transactionCountForCategory(category.name);
     final targets = repo.activeCategories.where((c) => c.id != category.id).toList();
@@ -484,7 +441,7 @@ class SettingsScreen extends StatelessWidget {
           backgroundColor: AppColors.surfaceWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Text(
-            'Hapus Permanen',
+            'Arsipkan Kategori?',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           content: txCount > 0
@@ -532,7 +489,7 @@ class SettingsScreen extends StatelessWidget {
               onPressed: txCount > 0 && selected == null
                   ? null
                   : () {
-                      final ok = repo.permanentlyDeleteCategory(
+                      final ok = repo.archiveCategory(
                         category.id,
                         reassignTo: txCount > 0 ? selected : null,
                       );
@@ -541,8 +498,8 @@ class SettingsScreen extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(ok
-                                ? 'Kategori "${category.name}" dihapus${txCount > 0 ? ' & $txCount transaksi dipindahkan' : ''}'
-                                : 'Gagal menghapus kategori'),
+                                ? 'Kategori "${category.name}" diarsipkan${txCount > 0 ? ' & $txCount transaksi dipindahkan' : ''}'
+                                : 'Gagal mengarsipkan kategori'),
                             backgroundColor: ok ? AppColors.error : AppColors.expense,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -584,12 +541,16 @@ class SettingsScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              context.read<BudgetRepository>().restoreCategory(category.id);
+              final reactivated =
+                  context.read<BudgetRepository>().restoreCategory(category.id);
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Kategori "${category.name}" dipulihkan'),
-                  backgroundColor: AppColors.green,
+                  content: Text(reactivated
+                      ? 'Kategori "${category.name}" dipulihkan'
+                      : 'Kategori "${category.name}" dipulihkan ke nonaktif — alokasi 100% sudah penuh'),
+                  backgroundColor:
+                      reactivated ? AppColors.green : AppColors.warning,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   margin: const EdgeInsets.all(16),
@@ -804,6 +765,109 @@ class SettingsScreen extends StatelessWidget {
         );
       }
     }
+  }
+}
+
+/// One "recoverable categories" panel: a titled card listing categories that
+/// are out of active use, each with a PULIHKAN action. Shared by the nonaktif
+/// and arsip lists so both stay visually identical.
+class _CategoryRecoveryCard extends StatelessWidget {
+  final String title;
+  final String hint;
+  final List<AllocationCategory> categories;
+  final ValueChanged<AllocationCategory> onRestore;
+
+  const _CategoryRecoveryCard({
+    required this.title,
+    required this.hint,
+    required this.categories,
+    required this.onRestore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.textTertiary,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+          ...categories.asMap().entries.map((entry) {
+            final index = entry.key;
+            final category = entry.value;
+            return Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              category.name,
+                              style:
+                                  Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade600,
+                                      ),
+                            ),
+                            Text(
+                              hint,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => onRestore(category),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('PULIHKAN'),
+                      ),
+                    ],
+                  ),
+                ),
+                if (index < categories.length - 1)
+                  Divider(color: AppColors.divider, height: 1),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
   }
 }
 

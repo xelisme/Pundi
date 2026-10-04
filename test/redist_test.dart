@@ -31,7 +31,7 @@ void main() {
   test('RED bug3: perm-deleted category share is redistributed (not dropped)', () {
     repo.recordIncome(amount: 5000, chargedToCategory: allCategoriesLabel); // snap 50/30/20
     final invest = repo.categories.firstWhere((c) => c.name == 'Investasi');
-    repo.permanentlyDeleteCategory(invest.id, reassignTo: 'Tabungan');
+    repo.archiveCategory(invest.id, reassignTo: 'Tabungan');
     final hasInvest = repo.history.first.splits.any((sp) => sp.category.name == 'Investasi');
     expect(hasInvest, false);
     expect(totalSplits(), 5000);
@@ -44,8 +44,8 @@ void main() {
     final inv = repo.categories.firstWhere((c) => c.name == 'Investasi');
     final invId = inv.id;
     final beb = repo.categories.firstWhere((c) => c.name == 'Bebas');
-    repo.permanentlyDeleteCategory(inv.id, reassignTo: null);
-    repo.permanentlyDeleteCategory(beb.id, reassignTo: null);
+    repo.archiveCategory(inv.id, reassignTo: null);
+    repo.archiveCategory(beb.id, reassignTo: null);
     final tab = repo.categories.firstWhere((c) => c.name == 'Tabungan');
     repo.updateCategory(tab.id, tab.copyWith(percentage: 100)); // 100% active
     // Now restoring Investasi (30) would push 100+30 = 130 -> refused.
