@@ -32,7 +32,10 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
-pubspec.lock
+
+# FVM — .fvm/ is a symlink to the SDK cache, never commit it.
+# .fvmrc (the version pin) IS committed on purpose.
+.fvm/
 
 # Symbolication related
 app.*.symbols
