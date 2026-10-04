@@ -272,7 +272,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
             final history = repo.activeHistory;
-            final archived = repo.archivedHistory;
 
             return CustomScrollView(
               slivers: [
@@ -613,136 +612,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-                // Arsip. Only rendered when something is actually in it, so
-                // the common case keeps exactly the layout it had before.
-                if (archived.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                      child: Row(
-                        children: [
-                          Icon(Icons.inventory_2_outlined,
-                              size: 18, color: AppColors.textSecondary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'ARSIP',
-                            style: GoogleFonts.nunito(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${archived.length} transaksi tidak dihitung',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textTertiary,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SliverList.builder(
-                    itemCount: archived.length,
-                    itemBuilder: (context, index) {
-                      final record = archived[index];
-                      return _buildArchiveRow(context, record);
-                    },
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                ],
               ],
             );
           },
         ),
-      ),
-    );
-  }
-
-  /// One row inside the Arsip section: enough to identify the entry, dimmed so
-  /// it reads as out of circulation, plus a restore control. No tap-to-menu —
-  /// an archived row's only useful action is putting it back, so that is the
-  /// only thing offered.
-  Widget _buildArchiveRow(BuildContext context, TransactionRecord record) {
-    final isExpense = record.type == TransactionType.expense;
-    final date = DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
-    final title = record.merchantName.isNotEmpty
-        ? record.merchantName
-        : (record.items.isNotEmpty ? record.items : 'Pemasukan');
-
-    return Container(
-      color: AppColors.surfaceWhite,
-      child: Column(
-        children: [
-          Divider(color: AppColors.divider, height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${DateFormat('dd MMM yyyy', 'id_ID').format(date)} · '
-                        '${isExpense ? 'Pengeluaran' : 'Pemasukan'}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(color: AppColors.textTertiary),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '${isExpense ? '−' : '+'} Rp ${_fmt(record.totalAmount)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textTertiary,
-                        decoration: TextDecoration.lineThrough,
-                        decorationColor: AppColors.textTertiary,
-                      ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    final repo = context.read<BudgetRepository>();
-                    if (repo.restoreTransaction(record.id)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Transaksi dipulihkan'),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.unarchive_outlined, size: 18),
-                  label: const Text('Pulihkan'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.accent,
-                    side: const BorderSide(color: AppColors.accent),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

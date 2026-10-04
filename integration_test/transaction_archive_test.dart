@@ -60,12 +60,13 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Arsipkan'));
     await tester.pumpAndSettle();
 
-    // Live rows are gone and the archive section appeared with a restore.
+    // Live rows are gone. Riwayat must NOT show the archive — it lives in
+    // Pengaturan now, and a leftover section here would mean the move was only
+    // half done.
     expect(find.text('0 transaksi'), findsOneWidget,
         reason: 'an archived row must leave the live count');
-    await tester.scrollUntilVisible(find.text('ARSIP'), 200);
-    expect(find.text('1 transaksi tidak dihitung'), findsOneWidget);
-    expect(find.text('Pulihkan'), findsOneWidget);
+    expect(find.text('ARSIP TRANSAKSI'), findsNothing,
+        reason: 'the archive list belongs to Pengaturan, not Riwayat');
 
     // --- Beranda total must have moved, not just the row count -------------
     await tester.tap(find.text('Beranda'));
@@ -83,16 +84,20 @@ void main() {
         reason: 'Ringkasan reads a different list; it must agree with Beranda');
     expect(find.text(net(0)), findsWidgets);
 
-    // --- Restore it --------------------------------------------------------
-    await tester.tap(find.text('Riwayat'));
+    // --- Restore it, from Pengaturan --------------------------------------
+    await tester.tap(find.text('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Pulihkan'), 200);
-    await tester.tap(find.text('Pulihkan'));
+    await tester.scrollUntilVisible(find.text('ARSIP TRANSAKSI'), 200);
+    expect(find.text('Tidak dihitung'), findsOneWidget);
+    await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('1 transaksi'), findsOneWidget);
-    expect(find.text('ARSIP'), findsNothing,
+    expect(find.text('ARSIP TRANSAKSI'), findsNothing,
         reason: 'the empty archive section must disappear again');
+
+    await tester.tap(find.text('Riwayat'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 transaksi'), findsOneWidget);
 
     await tester.tap(find.text('Ringkasan'));
     await tester.pumpAndSettle();
@@ -128,8 +133,12 @@ void main() {
 
     expect(repo.activeHistory.map((t) => t.merchantName), ['C', 'A']);
 
-    await tester.scrollUntilVisible(find.text('Pulihkan'), 200);
-    await tester.tap(find.text('Pulihkan'));
+    // Restore happens in Pengaturan, not here.
+    await tester.tap(find.text('Pengaturan'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('ARSIP TRANSAKSI'), 200);
+    expect(find.text('B'), findsOneWidget);
+    await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
 
     // Back between C and A, not on top.
