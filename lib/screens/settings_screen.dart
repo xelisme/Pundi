@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_info.dart';
 import '../widgets/edit_category_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -310,9 +311,59 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
+
+            // Copyright / license — parked at the very bottom so it is present
+            // but never in the way, and tapping it opens the actual grant
+            // rather than just asserting that one exists.
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: _AboutFooter(
+                  notice: appCopyrightNotice,
+                  version: appVersion,
+                  licenseName: appLicenseName,
+                  onTapLicense: () => _showLicenseDialog(context),
+                ),
+              ),
+            ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The full MIT grant, shown verbatim and selectable so it can actually be
+  /// copied — a copyright notice nobody can read is not a real one.
+  void _showLicenseDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          'Lisensi $appLicenseName',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              appLicenseText,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    height: 1.5,
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Tutup',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+        ],
       ),
     );
   }
@@ -867,6 +918,58 @@ class _CategoryRecoveryCard extends StatelessWidget {
           }),
         ],
       ),
+    );
+  }
+}
+
+/// Copyright + license footer, last thing in Pengaturan.
+///
+/// Deliberately quiet: one muted line with the notice, and the license name as
+/// the only tappable part. Nothing here competes with the settings actions
+/// above it, but the full grant is one tap away and selectable.
+class _AboutFooter extends StatelessWidget {
+  final String notice;
+  final String version;
+  final String licenseName;
+  final VoidCallback onTapLicense;
+
+  const _AboutFooter({
+    required this.notice,
+    required this.version,
+    required this.licenseName,
+    required this.onTapLicense,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.textTertiary,
+          fontSize: 11,
+        );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$appName v$version', style: muted),
+        const SizedBox(height: 2),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$notice · ', style: muted),
+            GestureDetector(
+              onTap: onTapLicense,
+              child: Text(
+                'Lihat lisensi',
+                style: muted?.copyWith(
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.textTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

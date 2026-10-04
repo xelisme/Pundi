@@ -9,8 +9,16 @@ persentase — tanpa login dan tanpa cloud.
 - **Guard ≤100%** — total alokasi aktif dicegah >100% (di UI **dan** repository).
 - **Snapshot freeze** — persentase dikunci saat transaksi dibuat; ubah/edit
   kategori nanti **tidak** mengubah transaksi lama.
-- **Nonaktifkan / Hapus Permanen** — soft-delete (riwayat tetap, bisa dipulihkan)
-  atau hapus total + **reassign wajib** (duit tak hilang, tak ada jatah "raib").
+- **Nonaktifkan / Arsipkan** — dua tahap, keduanya bisa dibalik. Nonaktifkan
+  disembunyikan tapi tetap tampil di "KATEGORI NONAKTIF"; Arsipkan memindahkannya
+  ke "ARSIP" (barisnya tak pernah dihapus) dengan **reassign wajib** kalau ada
+  transaksi (duit tak hilang, tak ada jatah "raib").
+- **Metode pembayaran** — Tunai/QRIS/Transfer Bank/Debit/Kredit/E-Wallet, untuk
+  pemasukan maupun pengeluaran, ikut ekspor-impor CSV.
+- **Catatan pemasukan** — kolom remark yang sama dipakai pengeluaran, jadi
+  pemasukan dan pengeluaran simetris di Riwayat, Ringkasan, dan CSV.
+- **Ringkasan per bulan atau semua periode** — toggle PER BULAN / SEMUA;
+  tabel per kategori ikut periode yang dipilih.
 - **Import / Export CSV** (RFC 4180 via paket `csv`) — baris gagal dilaporkan,
   tak dibuang diam-diam.
 - **4 tab**: Beranda · Riwayat · Ringkasan · Pengaturan. Tema ala Duolingo.
@@ -51,10 +59,11 @@ lib/
     budget_repository.dart      # STATE TUNGGAL + semua aturan alokasi
   models/
     transaction.dart            # TransactionRecord + allocationSnapshot
+    period_summary.dart         # agregasi per bulan / semua periode
   screens/                      # home, history, summary, settings
   widgets/                      # edit_category_dialog, radial_allocation_viz, ...
-  utils/                        # app_colors, income_parser
-test/                           # 19 test (guard, CSV, delete, redistribusi)
+  utils/                        # app_colors, app_info (lisensi), income_parser
+test/                           # 53 test (guard, CSV, arsip, periode, lisensi)
 ```
 
 ## Build & Jalankan
@@ -72,6 +81,13 @@ flutter test               # jalankan test (analyzer harus clean)
 - **Release APK** butuh `android/local.properties` + `upload-keystore.jks`
   (keduanya gitignored, dipegang pemilik repo).
 - **Crash log** ditulis ke `/sdcard/Download/pundi_crash.log` di device.
+
+## Lisensi
+
+MIT © xelisme — lihat [LICENSE](LICENSE). Metadata lisensi ada di
+`lib/utils/app_info.dart`, satu sumber kebenaran untuk footer "Tentang" di
+Pengaturan dan isi dialog lisensi; ada test yang menjaga keduanya tetap sama
+dengan berkas LICENSE.
 
 ## Tangkapan Layar
 
