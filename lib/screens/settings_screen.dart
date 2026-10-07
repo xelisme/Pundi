@@ -432,7 +432,6 @@ class SettingsScreen extends StatelessWidget {
 
   void _confirmDeleteCategory(BuildContext context, AllocationCategory category) {
     final repo = context.read<BudgetRepository>();
-    final txCount = repo.transactionCountForCategory(category.name);
 
     showDialog(
       context: context,
@@ -444,9 +443,7 @@ class SettingsScreen extends StatelessWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         content: Text(
-          'Pilih salah satu:\n\n'
-          '• Nonaktifkan — kategori disembunyikan, riwayat tetap ada & bisa dipulihkan. Tidak bisa terima transaksi baru.\n\n'
-          '• Arsipkan${txCount > 0 ? ' — $txCount transaksi akan dipindahkan ke kategori lain (wajib pilih)' : ' — tidak ada transaksi, langsung masuk arsip'}. Kategori tidak hilang, masih bisa dipulihkan dari Arsip.',
+          'Kategori disembunyikan, riwayat tetap ada & bisa dipulihkan. Tidak bisa terima transaksi baru.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
@@ -473,111 +470,7 @@ class SettingsScreen extends StatelessWidget {
             style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
             child: const Text('Nonaktifkan'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _confirmArchiveCategory(context, category);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.surfaceWhite,
-            ),
-            child: const Text('Arsipkan'),
-          ),
         ],
-      ),
-    );
-  }
-
-  void _confirmArchiveCategory(BuildContext context, AllocationCategory category) {
-    final repo = context.read<BudgetRepository>();
-    final txCount = repo.transactionCountForCategory(category.name);
-    final targets = repo.activeCategories.where((c) => c.id != category.id).toList();
-
-    String? selected = targets.isNotEmpty ? targets.first.name : null;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: AppColors.surfaceWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text(
-            'Arsipkan Kategori?',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          content: txCount > 0
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$txCount transaksi pada "${category.name}" akan dipindahkan ke:',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: selected,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: allCategoriesLabel,
-                          child: Text(allCategoriesLabel),
-                        ),
-                        ...targets.map((c) => DropdownMenuItem(
-                              value: c.name,
-                              child: Text(c.name),
-                            )),
-                      ],
-                      onChanged: (v) => setState(() => selected = v),
-                    ),
-                  ],
-                )
-              : Text(
-                  'Kategori "${category.name}" tidak punya transaksi. Akan dihapus langsung.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              onPressed: txCount > 0 && selected == null
-                  ? null
-                  : () {
-                      final ok = repo.archiveCategory(
-                        category.id,
-                        reassignTo: txCount > 0 ? selected : null,
-                      );
-                      Navigator.of(context).pop();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ok
-                                ? 'Kategori "${category.name}" diarsipkan${txCount > 0 ? ' & $txCount transaksi dipindahkan' : ''}'
-                                : 'Gagal mengarsipkan kategori'),
-                            backgroundColor: ok ? AppColors.error : AppColors.expense,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.surfaceWhite,
-              ),
-              child: const Text('Hapus'),
-            ),
-          ],
-        ),
       ),
     );
   }
