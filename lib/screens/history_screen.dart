@@ -18,6 +18,31 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  /// Free-text search over the list. A third axis beside period and category —
+  /// deliberately not folded into [LedgerFilter], because Ringkasan publishes
+  /// that object and would then publish whatever someone happened to type here.
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// What a person would actually type. Merchandise and merchant are the obvious
+  /// hits; `rawInput` catches anything free-form, and the categories are in
+  /// because this app groups by "kantong" — searching "investasi" to find what
+  /// went there is the natural thing to reach for once you know the word.
+  bool _matchesQuery(TransactionRecord record, String query) {
+    if (record.merchantName.toLowerCase().contains(query)) return true;
+    if (record.items.toLowerCase().contains(query)) return true;
+    if (record.rawInput.toLowerCase().contains(query)) return true;
+    if (record.chargedTo?.toLowerCase().contains(query) ?? false) return true;
+    return record.splits
+        .any((s) => s.category.name.toLowerCase().contains(query));
+  }
+
   String _fmt(double amount) {
     final formatter = NumberFormat('#,##0', 'id_ID');
     return formatter.format(amount);
@@ -293,6 +318,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
             // the same slice, and a filtered row can only ever be a view of a
             // stored record rather than a second source of truth.
             final history = applyLedgerFilter(all, filter);
+            // The search narrows what the filter already narrowed, rather than
+            // running alongside it — a search inside a filtered slice is what
+            // the counter and the empty state have to describe, not two
+            // independent lists that happen to be drawn from one.
+            final query = _query.trim().toLowerCase();
+            final results = query.isEmpty
+                ? history
+                : history
+                    .where((record) => _matchesQuery(record, query))
+                    .toList(growable: false);
+            final searchActive = query.isNotEmpty;
 
             return CustomScrollView(
               slivers: [
@@ -322,12 +358,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 // their spending, so the count shows only what
                                 // still counts and the archive is surfaced
                                 // further down as its own section. Under a
-                                // filter it also has to say the list is
-                                // narrowed — a bare count would read as the
-                                // whole ledger while showing a slice of it.
-                                filter.isActive
-                                    ? '${history.length} dari ${all.length} transaksi'
-                                    : '${history.length} transaksi',
+                                // filter or a search it also has to say the
+                                // list is narrowed — a bare count would read
+                                // as the whole ledger while showing a slice
+                                // of it.
+                                filter.isActive || searchActive
+                                    ? '${results.length} dari ${all.length} transaksi'
+                                    : '${results.length} transaksi',
                                 style: GoogleFonts.nunito(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -351,6 +388,59 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
 
+                // The search sits closest to the header rather than below the filter
+                // bar: the filter bar is conditional, the search is permanent,
+                // and the one tool that is always there should be the one you
+                // can find without looking for it.
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search,
+                              size: 18, color: AppColors.textTertiary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) =>
+                                  setState(() => _query = value),
+                              textInputAction: TextInputAction.search,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Cari transaksi',
+                                isDense: true,
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                          if (searchActive)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() => _query = '');
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(Icons.close,
+                                    size: 18, color: AppColors.textTertiary),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
                 // What the list is currently narrowed to. Without this the
                 // header count alone leaves a filtered list looking like the
                 // whole ledger, and a shared "Seluruhnya" row showing only part
@@ -365,7 +455,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
 
                 // Empty state
-                if (history.isEmpty)
+                if (results.isEmpty)
                   SliverFillRemaining(
                     child: Center(
                       child: Column(
@@ -386,25 +476,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            // "Empty" and "nothing matches this filter" are
-                            // different situations and need different words.
-                            // Telling someone they have no transactions when
-                            // they have 76 is worse than silence.
-                            filter.isActive
-                                ? 'Tidak ada transaksi di pilihan ini'
-                                : 'Belum ada transaksi',
+                            // Three different situations, three different
+                            // sentences. Telling someone with 76 transactions
+                            // that they have none is worse than saying nothing,
+                            // and so is blaming the filter when a search is
+                            // what came up short.
+                            searchActive
+                                ? 'Tidak ada yang cocok dengan pencarian'
+                                : filter.isActive
+                                    ? 'Tidak ada transaksi di pilihan ini'
+                                    : 'Belum ada transaksi',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textTertiary,
                             ),
                           ),
-                          if (filter.isActive) ...[
+                          if (searchActive || filter.isActive) ...[
                             const SizedBox(height: 6),
                             GestureDetector(
-                              onTap: () => context
-                                  .read<LedgerFilterController>()
-                                  .clear(),
+                              onTap: () {
+                                // Clear both. The two axes are independent, but
+                                // leaving either one up would keep the list
+                                // empty with no visible reason, and a clear
+                                // button that only half-releases is a button
+                                // you have to press twice.
+                                _searchController.clear();
+                                setState(() => _query = '');
+                                context
+                                    .read<LedgerFilterController>()
+                                    .clear();
+                              },
                               child: Text(
-                                'Hapus filter',
+                                searchActive && filter.isActive
+                                    ? 'Hapus pencarian & filter'
+                                    : searchActive
+                                        ? 'Bersihkan pencarian'
+                                        : 'Hapus filter',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -421,7 +527,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
 
                 // Ledger-style transaction list
-                if (history.isNotEmpty)
+                if (results.isNotEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -478,7 +584,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             Divider(color: AppColors.divider, height: 1),
 
                             // Transaction rows
-                            ...history.asMap().entries.map((entry) {
+                            ...results.asMap().entries.map((entry) {
                               final index = entry.key;
                               final record = entry.value;
                               final isExpense = record.type == TransactionType.expense;
@@ -672,7 +778,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       ),
                                     ),
                                   ),
-                                  if (index < history.length - 1)
+                                  if (index < results.length - 1)
                                     Divider(color: AppColors.divider, height: 1),
                                 ],
                               );

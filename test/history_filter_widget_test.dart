@@ -186,4 +186,83 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 transaksi'), findsOneWidget);
   });
+
+  // --- the search box -------------------------------------------------------
+
+  testWidgets('search narrows the list and the count says so',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+        merchantName: 'Toko Alpha', items: 'Beras', amount: 100000, chargedToCategory: 'Bebas');
+    repo.recordExpense(
+        merchantName: 'Toko Beta', items: 'Minyak', amount: 200000, chargedToCategory: 'Bebas');
+    await pumpHistory(tester);
+
+    expect(find.text('2 transaksi'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'alpha');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Toko Alpha'), findsOneWidget);
+    expect(find.text('Toko Beta'), findsNothing);
+    // A bare count would read as the whole ledger while showing half of it.
+    expect(find.text('1 dari 2 transaksi'), findsOneWidget);
+  });
+
+  testWidgets('search narrows what the category filter already narrowed',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+        merchantName: 'Toko Alpha', items: 'Beras', amount: 100000, chargedToCategory: 'Bebas');
+    repo.recordExpense(
+        merchantName: 'Toko Beta', items: 'Minyak', amount: 200000, chargedToCategory: 'Tabungan');
+    filters.setCategory('Bebas');
+    await pumpHistory(tester);
+
+    // The filter already leaves one of the two.
+    expect(find.text('1 dari 2 transaksi'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'alpha');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Toko Alpha'), findsOneWidget);
+    expect(find.text('Toko Beta'), findsNothing);
+    expect(find.text('1 dari 2 transaksi'), findsOneWidget);
+  });
+
+  testWidgets('a search that matches nothing says so, and releasing it brings '
+      'the rows back', (WidgetTester tester) async {
+    repo.recordExpense(
+        merchantName: 'Toko Alpha', items: 'Beras', amount: 100000, chargedToCategory: 'Bebas');
+    await pumpHistory(tester);
+
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tidak ada yang cocok dengan pencarian'), findsOneWidget);
+    // Blaming an empty ledger when the ledger has rows is the failure this
+    // wording exists to avoid.
+    expect(find.text('Belum ada transaksi'), findsNothing);
+
+    await tester.tap(find.text('Bersihkan pencarian'));
+    await tester.pumpAndSettle();
+    expect(find.text('Toko Alpha'), findsOneWidget);
+    expect(find.text('1 transaksi'), findsOneWidget);
+  });
+
+  testWidgets('typing in the search never reaches Ringkasan',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+        merchantName: 'Toko Alpha', items: 'Beras', amount: 100000, chargedToCategory: 'Bebas');
+    await pumpHistory(tester);
+
+    // The three axes are independent. Publishing a search would leave Ringkasan
+    // showing one kind of slice and Riwayat a different one, and nothing on
+    // Ringkasan would explain either.
+    await tester.enterText(find.byType(TextField), 'alpha');
+    await tester.pumpAndSettle();
+    expect(filters.filter, LedgerFilter.none());
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+    expect(filters.filter, LedgerFilter.none());
+  });
 }
