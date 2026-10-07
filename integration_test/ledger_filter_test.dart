@@ -55,9 +55,16 @@ void main() {
     await tester.tap(find.text('Ringkasan'));
     await tester.pumpAndSettle();
 
-    // Pick the Investments pocket. The name appears twice on screen — once as a
-    // filter chip, once as a table row — and the filter section is built first,
-    // so the first match is the chip.
+    // Pick the Investments pocket from the table. The row can sit below the
+    // fold in a short window and an unbuilt sliver child is invisible to
+    // finders, so bring it into view first — the same pattern the "Lihat"
+    // link below already uses.
+    await tester.scrollUntilVisible(
+      find.text('Investasi'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Investasi').first);
     await tester.pumpAndSettle();
 
@@ -123,6 +130,13 @@ void main() {
     // Browsing periods on Ringkasan must not reach across the shell and narrow
     // a tab the user has not opened. It did once: stepping back a month here made
     // Riwayat hide the receipt that month_attribution_test expects to find.
+    // Scrolled into view first: the row can sit below the fold, same as above.
+    await tester.scrollUntilVisible(
+      find.text('Bebas'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Bebas').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('SEMUA'));
