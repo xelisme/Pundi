@@ -139,7 +139,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bebas').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('SEMUA'));
+    // Back up to the header: the scroll above pushed the period pill out of
+    // the laid-out slivers, and an unbuilt pill cannot be tapped.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('periodLabel')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Riwayat'));

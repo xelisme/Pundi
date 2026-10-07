@@ -17,39 +17,58 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-/// Which span of history the Ringkasan screen is showing.
-enum SummaryPeriod {
-  /// One calendar month, chosen with the chevrons.
-  month,
-
-  /// Every month that has at least one record — no month or year ceiling.
-  all,
-}
+/// Month stepping and the range sheet own period selection; the PER BULAN /
+/// SEMUA toggle used to live here.
 
 class _SummaryScreenState extends State<SummaryScreen> {
   DateTime _selectedMonth = DateTime.now();
-  SummaryPeriod _period = SummaryPeriod.month;
+  /// Semua mode: every month with records, bounded by the first and last
+  /// recording rather than a hardcoded century. Set only from the "Semua"
+  /// preset; the chevrons and month stepping own everything else.
+  bool _allTime = false;
 
-  /// A range that is neither a stepped month nor all-time — one of the presets,
-  /// or two dates the user picked. Null whenever the chevrons or the
-  /// PER BULAN/SEMUA toggle are in charge, which is what keeps month stepping
-  /// meaningful instead of fighting a stale range.
+  /// A range that is neither a stepped month nor Semua — one of the presets,
+  /// or two dates the user picked. Null whenever the chevrons or Semua mode
+  /// are in charge, which is what keeps month stepping meaningful instead of
+  /// fighting a stale range.
   LedgerFilter? _range;
 
   /// Null means every category.
   String? _category;
 
-  LedgerFilter get _filter {
+  LedgerFilter _filterFor(BudgetRepository repo) {
     final base = _range ??
-        (_period == SummaryPeriod.month
-            ? LedgerFilter(
+        (_allTime
+            ? _allTimeBounds(repo.activeHistory)
+            : LedgerFilter(
                 from: DateTime(_selectedMonth.year, _selectedMonth.month, 1),
                 to: DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0),
-              )
-            : LedgerRanges.allTime());
+              ));
     return _category == null
         ? base
         : base.copyWith(categoryName: _category);
+  }
+
+  /// The Semua span: the first recording's day through the last recording's
+  /// day, so the view always matches what is actually on file. Archived rows
+  /// stay out, like every other total. Empty history means an unbounded
+  /// filter, which matches nothing because there is nothing to match.
+  LedgerFilter _allTimeBounds(List<TransactionRecord> records) {
+    DateTime? first;
+    DateTime? last;
+    for (final record in records) {
+      final date =
+          DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
+      if (first == null || date.isBefore(first)) first = date;
+      if (last == null || date.isAfter(last)) last = date;
+    }
+    if (first == null || last == null) {
+      return LedgerFilter(from: null, to: null);
+    }
+    return LedgerFilter(
+      from: DateTime(first.year, first.month, first.day),
+      to: DateTime(last.year, last.month, last.day, 23, 59, 59, 999),
+    );
   }
 
   /// Hand the current selection to Riwayat.
@@ -62,7 +81,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
   /// and Riwayat shows what it received until the filter is cleared.
   void _publish() {
     if (!mounted) return;
-    context.read<LedgerFilterController>().setFilter(_filter);
+    final repo = context.read<BudgetRepository>();
+    context.read<LedgerFilterController>().setFilter(_filterFor(repo));
   }
 
   bool get _isRangeMode => _range != null;
@@ -70,7 +90,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   /// True when the chevrons can actually step anywhere. A hand-picked range has
   /// no month to step from, so they dim instead of silently moving the label to
   /// a month the numbers do not describe.
-  bool get _canStepMonths => !_isRangeMode && _period == SummaryPeriod.month;
+  bool get _canStepMonths => !_isRangeMode && !_allTime;
 
   String _fmt(int amount) => NumberFormat('#,##0', 'id_ID').format(amount);
 
@@ -107,11 +127,11 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   void _applyPreset(LedgerFilter next) {
     setState(() {
-      // "Semua" is the SEMUA mode, not a range of 2000 to 2100. Taking it as a
-      // literal range made the header print those dates and left the
-      // PER BULAN/SEMUA toggle with neither half lit.
+      // "Semua" is a mode, not the 2000-2100 marker: the bounds resolve to
+      // the first and last recording in _filterFor, so the header, the scope
+      // note and Riwayat all describe what is actually on file.
       if (next == LedgerRanges.allTime()) {
-        _period = SummaryPeriod.all;
+        _allTime = true;
         _range = null;
         return;
       }
@@ -119,19 +139,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
       // picking "Bulan ini" leaves the chevrons live instead of freezing a copy
       // of this month with the arrows inert.
       if (_isWholeMonth(next)) {
+        _allTime = false;
         _range = null;
-        _period = SummaryPeriod.month;
         _selectedMonth = DateTime(next.from!.year, next.from!.month, 1);
         return;
       }
+      _allTime = false;
       _range = next;
-    });
-  }
-
-  void _applyPeriodTab(SummaryPeriod value) {
-    setState(() {
-      _period = value;
-      _range = null;
     });
   }
 
@@ -148,7 +162,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _RangeSheet(
-        current: _filter,
+        current: _filterFor(context.read<BudgetRepository>()),
+        isAllTime: _allTime,
         onApply: (from, to) => LedgerFilter(from: from, to: to),
       ),
     );
@@ -165,7 +180,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   String _periodLabel() {
     if (_isRangeMode) return _formatRange(_range!);
-    if (_period == SummaryPeriod.all) return 'SEMUA PERIODE';
+    if (_allTime) return 'SEMUA PERIODE';
     return DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth).toUpperCase();
   }
 
@@ -202,7 +217,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     if (_isRangeMode) {
       return '$count · ${_formatRange(_range!).toLowerCase()}';
     }
-    if (_period == SummaryPeriod.all) {
+    if (_allTime) {
       return '${summary.monthCount} bulan · $count';
     }
     return '$count · ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}';
@@ -213,7 +228,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   String _tableCaption() {
     if (_category != null) return 'Kategori $_category';
     if (_isRangeMode) return _formatRange(_range!).toLowerCase();
-    if (_period == SummaryPeriod.all) return 'Akumulasi semua periode';
+    if (_allTime) return 'Akumulasi semua periode';
     return 'Periode ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}';
   }
 
@@ -227,7 +242,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
             // Filter first, then aggregate. Reusing calculatePeriodSummary on the
             // narrowed records keeps one aggregation implementation, so a
             // filtered total cannot quietly disagree with an unfiltered one.
-            final visible = applyLedgerFilter(repo.activeHistory, _filter);
+            final visible =
+                applyLedgerFilter(repo.activeHistory, _filterFor(repo));
             final summary =
                 calculatePeriodSummary(visible, repo.categories);
             final label = _periodLabel();
@@ -266,21 +282,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-
-                        // Period toggle: one month, or every month on record.
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          child: Row(
-                            children: [
-                              _buildPeriodTab('PER BULAN', SummaryPeriod.month),
-                              _buildPeriodTab('SEMUA', SummaryPeriod.all),
-                            ],
-                          ),
-                        ),
 
                         // Say what is actually counted. Previously this only
                         // appeared for all-time, which left a hand-picked range
@@ -814,35 +815,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  /// One half of the PER BULAN / SEMUA toggle in the green header.
-  Widget _buildPeriodTab(String label, SummaryPeriod value) {
-    final selected = _period == value && !_isRangeMode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _applyPeriodTab(value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: selected ? AppColors.green : Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildHeroMetric(
     BuildContext context, {
     required String label,
@@ -963,12 +935,17 @@ class _FilterChip extends StatelessWidget {
 class _RangeSheet extends StatefulWidget {
   const _RangeSheet({
     required this.current,
+    required this.isAllTime,
     required this.onApply,
   });
 
   /// What Ringkasan is showing now, so the fields open on the selection being
   /// changed rather than on an unrelated month.
   final LedgerFilter current;
+
+  /// Whether the Semua preset is the active choice. It arrives as data bounds
+  /// rather than the century marker, so equality alone cannot light its chip.
+  final bool isAllTime;
 
   final LedgerFilter Function(DateTime from, DateTime to) onApply;
 
@@ -1007,6 +984,11 @@ class _RangeSheetState extends State<_RangeSheet> {
       }
     });
   }
+
+  /// The last preset is Semua, which arrives as data bounds rather than the
+  /// century marker the preset list holds.
+  bool _isSemuaPreset(int index) =>
+      LedgerRanges.preset(index) == LedgerRanges.allTime();
 
   /// True when [preset] is the range currently in view, so the sheet opens with
   /// the active choice lit rather than looking unset.
@@ -1052,7 +1034,9 @@ class _RangeSheetState extends State<_RangeSheet> {
               for (var i = 0; i < LedgerRanges.presetLabels.length; i++)
                 _FilterChip(
                   label: LedgerRanges.presetLabels[i],
-                  selected: _isPreset(LedgerRanges.preset(i)),
+                  selected: _isSemuaPreset(i)
+                      ? widget.isAllTime
+                      : _isPreset(LedgerRanges.preset(i)),
                   onTap: () => Navigator.of(context)
                       .pop(LedgerRanges.preset(i)),
                 ),

@@ -206,7 +206,10 @@ class LedgerRanges {
     );
   }
 
-  /// Every month on file, no ceiling.
+  /// Every month on file, no ceiling. A marker only: the UI resolves it to the
+  /// first and last recording when it is picked, so these dates must never
+  /// reach a label or a query. Kept wide so model-level "everything" checks
+  /// keep passing.
   static LedgerFilter allTime() => LedgerFilter(
         from: DateTime(2000),
         to: DateTime(2100),

@@ -43,8 +43,11 @@ void main() {
   testWidgets('the header starts in per-month mode', (WidgetTester tester) async {
     await pumpSummary(tester);
 
-    expect(find.text('PER BULAN'), findsOneWidget);
-    expect(find.text('SEMUA'), findsOneWidget);
+    // No toggle: the month pill and the chevrons own the header.
+    expect(find.text('PER BULAN'), findsNothing);
+    expect(find.text('SEMUA'), findsNothing);
+    expect(find.byIcon(Icons.chevron_left), findsWidgets);
+    expect(find.byIcon(Icons.chevron_right), findsWidgets);
     // Not yet accumulated, so the all-time label is absent.
     expect(find.text('SEMUA PERIODE'), findsNothing);
   });
@@ -59,7 +62,9 @@ void main() {
     );
     await pumpSummary(tester);
 
-    await tester.tap(find.text('SEMUA'));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
     expect(find.text('SEMUA PERIODE'), findsOneWidget);
@@ -86,11 +91,15 @@ void main() {
     );
     await pumpSummary(tester);
 
-    await tester.tap(find.text('SEMUA'));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
     expect(find.text('SEMUA PERIODE'), findsOneWidget);
 
-    await tester.tap(find.text('PER BULAN'));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bulan ini'));
     await tester.pumpAndSettle();
     expect(find.text('SEMUA PERIODE'), findsNothing);
   });
@@ -99,7 +108,9 @@ void main() {
       (WidgetTester tester) async {
     await pumpSummary(tester);
 
-    await tester.tap(find.text('SEMUA'));
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
     // No records => no "0 bulan · 0 transaksi" claim anywhere.
@@ -170,14 +181,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
 
-    // "SEMUA" on the toggle behind the sheet is a different casing, so this is
-    // the preset alone.
+    // The preset alone: the toggle is gone, so 'Semua' here can only mean
+    // the sheet preset.
     expect(find.text('Semua'), findsOneWidget);
     await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
-    // Taken literally as a range this printed "1 JAN 2000 - 31 DES 2100" and
-    // lit neither half of PER BULAN/SEMUA.
+    // Taken literally as a range this printed "1 JAN 2000 - 31 DES 2100";
+    // the bounds now resolve to the recordings instead.
     expect(find.text('SEMUA PERIODE'), findsOneWidget);
     expect(find.textContaining('2100'), findsNothing);
     expect(labelText(tester), 'SEMUA PERIODE');

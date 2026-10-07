@@ -144,8 +144,10 @@ void main() {
     await tester.tap(find.text('Ringkasan'));
     await tester.pumpAndSettle();
 
-    // Flip to SEMUA and both months must be counted at once.
-    await tester.tap(find.text('SEMUA'));
+    // Flip to SEMUA via the sheet and both months must be counted at once.
+    await tester.tap(find.byKey(const ValueKey('periodLabel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Semua'));
     await tester.pumpAndSettle();
 
     // Both months must be inside one view: 3.000.000 + 500.000 of spending,
