@@ -22,10 +22,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// deliberately not folded into [LedgerFilter], because Ringkasan publishes
   /// that object and would then publish whatever someone happened to type here.
   final _searchController = TextEditingController();
+
+  /// Whether the box is being typed into. Before this the border sat in one
+  /// color whether or not the cursor was in the field, so a tap that landed
+  /// elsewhere left no trace and the field looked inert after the tap.
+  final _searchFocus = FocusNode();
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
+    _searchFocus.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -399,7 +411,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border, width: 1),
+                        // Focus used to leave no trace here: the border sat in
+                        // one color whether or not the cursor was in the field,
+                        // so a tap that landed elsewhere looked identical to a
+                        // tap that landed. Green is already the app's accent,
+                        // so "active" needed no new color.
+                        border: Border.all(
+                          color: _searchFocus.hasFocus
+                              ? AppColors.green
+                              : AppColors.border,
+                          width: 1,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: Row(
@@ -410,6 +432,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           Expanded(
                             child: TextField(
                               controller: _searchController,
+                              focusNode: _searchFocus,
                               onChanged: (value) =>
                                   setState(() => _query = value),
                               textInputAction: TextInputAction.search,
@@ -422,19 +445,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                             ),
                           ),
-                          if (searchActive)
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() => _query = '');
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(4),
-                                child: Icon(Icons.close,
-                                    size: 18, color: AppColors.textTertiary),
-                              ),
-                            ),
+                          // The slot is this wide whether or not text exists.
+                          // Tying the button's existence to having text made
+                          // the row re-lay-out on the first character and on
+                          // the last, so the hint slid sideways mid-tap — that
+                          // reads as the field jumping rather than as something
+                          // being cleared.
+                          searchActive
+                              ? GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    _searchController.clear();
+                                    setState(() => _query = '');
+                                  },
+                                  // Padding grows the hit area to 34x38 without
+                                  // growing the glyph, so the × is a target
+                                  // rather than a sliver.
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 10),
+                                    child: Icon(Icons.close,
+                                        size: 18,
+                                        color: AppColors.textTertiary),
+                                  ),
+                                )
+                              : const SizedBox(width: 34),
                         ],
                       ),
                     ),

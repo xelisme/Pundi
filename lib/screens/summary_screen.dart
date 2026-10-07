@@ -643,15 +643,26 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 6, 24, 0),
-          child: TextButton.icon(
+          // A chevron after the words, not a receipt glyph before them. The
+          // question this answers is "where does this go", and a leading icon
+          // describes the contents instead — the trailing arrow is the one
+          // convention that says the action moves you somewhere. It stays a
+          // TextButton so the press still highlights on pointer-down.
+          child: TextButton(
             onPressed: _openHistory,
-            icon: const Icon(Icons.receipt_long_outlined, size: 16),
-            label: const Text('Lihat semua di Riwayat'),
             style: TextButton.styleFrom(
               foregroundColor: AppColors.green,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               minimumSize: const Size(0, 36),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Lihat semua di Riwayat'),
+                SizedBox(width: 2),
+                Icon(Icons.chevron_right, size: 18),
+              ],
             ),
           ),
         ),
@@ -726,31 +737,43 @@ class _SummaryScreenState extends State<SummaryScreen> {
   /// the sheet; dimming it along with the arrows would have been a lie about
   /// what responds.
   Widget _buildPeriodLabel(String label) {
-    return GestureDetector(
+    // The underline says "this opens something"; the press has to say "now".
+    // Under GestureDetector the label gave nothing back until the sheet was
+    // already sliding up, which reads as a missed tap rather than a slow one.
+    return Material(
       // The label reads differently every month, so this is the only stable way
       // to aim at it. Tests use it; nothing in the app looks it up.
       key: const ValueKey('periodLabel'),
-      behavior: HitTestBehavior.opaque,
-      onTap: _openRangeSheet,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        // The only cue that this opens something. A calendar icon sat here
-        // before and was removed for good reason: one pill already carries a
-        // glyph on each side, and a third for the label's job made the pill read
-        // as three buttons rather than one label between two arrows.
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openRangeSheet,
+        borderRadius: BorderRadius.circular(6),
+        highlightColor: Colors.white.withValues(alpha: 0.25),
+        splashColor: Colors.white.withValues(alpha: 0.16),
+        child: Container(
+          // Six pixels either side so the pressed area is a target rather than
+          // a sliver of text. Widening the label widens the pill by the same
+          // twelve, which reads as the pill having room for its label instead of
+          // the label wedged between two arrows.
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          // The only cue that this opens something. A calendar icon sat here
+          // before and was removed for good reason: one pill already carries a
+          // glyph on each side, and a third for the label's job made the pill
+          // read as three buttons rather than one label between two arrows.
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.nunito(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-            letterSpacing: 1.2,
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.nunito(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: 1.2,
+            ),
           ),
         ),
       ),
@@ -759,19 +782,33 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   Widget _stepButton(IconData icon, VoidCallback onTap) {
     final enabled = _canStepMonths;
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: enabled ? Colors.white : Colors.white38,
-          size: 20,
+    // Feedback has to land on pointer-down. GestureDetector reports nothing
+    // until the tap resolves, so the arrow looked dead for the whole press and
+    // only came alive once the month had already moved under it.
+    //
+    // The highlight paints on the Material behind the circle rather than over
+    // it, so it stacks with the circle's own translucent white instead of
+    // replacing it: pressed reads as noticeably brighter than released, and
+    // released is unchanged from before.
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        customBorder: const CircleBorder(),
+        highlightColor: Colors.white.withValues(alpha: 0.30),
+        splashColor: Colors.white.withValues(alpha: 0.18),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: enabled ? Colors.white : Colors.white38,
+            size: 20,
+          ),
         ),
       ),
     );
