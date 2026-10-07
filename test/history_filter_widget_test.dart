@@ -150,7 +150,7 @@ void main() {
 
     await tester.tap(find.text('Gajian'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit Transaksi'));
+    await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
 
     // The form must open on the stored receipt, not on the slice.

@@ -55,9 +55,9 @@ void main() {
     // --- Archive it from the row menu --------------------------------------
     await tester.tap(find.text('Almaz'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Arsipkan Transaksi'));
+    await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Arsipkan'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Hapus'));
     await tester.pumpAndSettle();
 
     // Live rows are gone. Riwayat must NOT show the archive — it has its own
@@ -87,20 +87,20 @@ void main() {
     // --- Restore it, from the dedicated Arsip screen ---------------------
     await tester.tap(find.text('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Arsip'), 200);
+    await tester.scrollUntilVisible(find.text('Baru dihapus'), 200);
     expect(find.text('1 catatan bisa dipulihkan'), findsOneWidget,
         reason: 'Pengaturan shows a count, not a growing list of records');
     expect(find.text('Almaz'), findsNothing,
         reason: 'the record itself must not leak onto the settings screen');
 
-    await tester.tap(find.text('Arsip'));
+    await tester.tap(find.text('Baru dihapus'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('TRANSAKSI'), 200);
     expect(find.text('Tidak masuk perhitungan'), findsOneWidget);
     await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Arsip kosong'), findsOneWidget,
+    expect(find.text('Belum ada yang dihapus'), findsOneWidget,
         reason: 'an emptied archive shows an empty state, not a bare page');
 
     // Explicit BackButton, not pageBack(): the Arsip screen is pushed under a
@@ -141,9 +141,9 @@ void main() {
     // Archive the middle row.
     await tester.tap(find.text('B'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Arsipkan Transaksi'));
+    await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Arsipkan'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Hapus'));
     await tester.pumpAndSettle();
 
     expect(repo.activeHistory.map((t) => t.merchantName), ['C', 'A']);
@@ -151,8 +151,8 @@ void main() {
     // Restore happens on the Arsip screen, not in Riwayat.
     await tester.tap(find.text('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Arsip'), 200);
-    await tester.tap(find.text('Arsip'));
+    await tester.scrollUntilVisible(find.text('Baru dihapus'), 200);
+    await tester.tap(find.text('Baru dihapus'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('TRANSAKSI'), 200);
     expect(find.text('B'), findsOneWidget);

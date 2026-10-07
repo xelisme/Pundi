@@ -214,7 +214,7 @@ void main() {
     expect(repo.purgeArchived(), 2);
     expect(repo.history, isEmpty);
     expect(repo.archivedCategories, isEmpty,
-        reason: 'an archived category must not survive "Kosongkan Arsip"');
+        reason: 'an archived category must not survive "Hapus permanen"');
   });
 
   test('purging keeps non-archived categories and live transactions', () {

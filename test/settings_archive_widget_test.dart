@@ -32,7 +32,7 @@ void main() {
   }
 
   Future<void> openArchive(WidgetTester tester) async {
-    await tester.tap(find.text('Arsip'));
+    await tester.tap(find.text('Baru dihapus'));
     await tester.pumpAndSettle();
   }
 
@@ -61,7 +61,7 @@ void main() {
     // Present even when empty: a row that appears only once something is
     // archived would hide the feature, and a row that grows would be the junk
     // drawer the user complained about.
-    expect(find.text('Arsip'), findsOneWidget);
+    expect(find.text('Baru dihapus'), findsOneWidget);
     expect(find.text('Belum ada yang dihapus'), findsOneWidget);
 
     repo.recordExpense(
@@ -102,8 +102,8 @@ void main() {
     await pumpSettings(tester);
     await openArchive(tester);
 
-    expect(find.text('Arsip kosong'), findsOneWidget);
-    expect(find.text('Kosongkan Arsip'), findsNothing,
+    expect(find.text('Belum ada yang dihapus'), findsOneWidget);
+    expect(find.text('Hapus permanen'), findsNothing,
         reason: 'nothing to purge, so the destructive action stays hidden');
   });
 
@@ -158,12 +158,12 @@ void main() {
 
     await openArchive(tester);
     expect(find.text('1 catatan dihapus dan tidak dihitung. Semuanya masih di '
-        'sini sampai kamu mengosongkan arsip.'), findsOneWidget);
+        'sini sampai kamu menghapusnya permanen.'), findsOneWidget);
 
     await tester.tap(find.text('PULIHKAN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Arsip kosong'), findsOneWidget,
+    expect(find.text('Belum ada yang dihapus'), findsOneWidget,
         reason: 'the empty state replaces the sections once nothing is left');
     expect(repo.archivedHistory, isEmpty);
     expect(repo.activeHistory, hasLength(2));
@@ -197,9 +197,9 @@ void main() {
         reason: 'archiving alone never removes a row');
 
     // The dialog must name the exact loss, not ask generically.
-    await tester.tap(find.text('Kosongkan Arsip'));
+    await tester.tap(find.text('Hapus permanen'));
     await tester.pumpAndSettle();
-    expect(find.text('Kosongkan Arsip?'), findsOneWidget);
+    expect(find.text('Hapus permanen?'), findsOneWidget);
     expect(
         find.textContaining('3 catatan akan dihapus permanen'), findsOneWidget);
     expect(find.textContaining('2 transaksi'), findsOneWidget);
@@ -210,14 +210,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.history, hasLength(2));
 
-    await tester.tap(find.text('Kosongkan Arsip'));
+    await tester.tap(find.text('Hapus permanen'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Hapus permanen'));
     await tester.pumpAndSettle();
 
     expect(repo.history, isEmpty);
     expect(repo.archivedHistory, isEmpty);
-    expect(find.text('Arsip kosong'), findsOneWidget);
+    expect(find.text('Belum ada yang dihapus'), findsOneWidget);
 
     // And Pengaturan's row must fall back to its empty wording.
     await tester.pageBack();

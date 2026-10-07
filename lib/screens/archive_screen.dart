@@ -27,7 +27,7 @@ class ArchiveScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Arsip')),
+      appBar: AppBar(title: const Text('Baru dihapus')),
       // Consumer, not context.read: restoring or purging has to rebuild this
       // screen, and a read would register no dependency.
       body: Consumer<BudgetRepository>(
@@ -49,7 +49,7 @@ class ArchiveScreen extends StatelessWidget {
               // has to archive something to find out.
               Text(
                 '$total catatan dihapus dan tidak dihitung. '
-                'Semuanya masih di sini sampai kamu mengosongkan arsip.',
+                'Semuanya masih di sini sampai kamu menghapusnya permanen.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -115,7 +115,7 @@ class _ArchiveEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Arsip kosong',
+              'Belum ada yang dihapus',
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -382,7 +382,7 @@ class _PurgeButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: () => _confirmPurge(context),
       icon: const Icon(Icons.delete_forever_outlined, size: 18),
-      label: const Text('Kosongkan Arsip'),
+      label: const Text('Hapus permanen'),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.error,
         side: const BorderSide(color: AppColors.error),
@@ -406,7 +406,7 @@ class _PurgeButton extends StatelessWidget {
         backgroundColor: AppColors.surfaceWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          'Kosongkan Arsip?',
+          'Hapus permanen?',
           style: Theme.of(dialogContext).textTheme.titleLarge,
         ),
         content: Text(

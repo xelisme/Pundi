@@ -933,7 +933,7 @@ class _ArchiveEntryRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Arsip',
+                      'Baru dihapus',
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium

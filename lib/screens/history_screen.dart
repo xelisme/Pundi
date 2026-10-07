@@ -87,7 +87,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 _showEditDialog(context, record);
               },
               icon: const Icon(Icons.edit_outlined),
-              label: const Text('Edit Transaksi'),
+              label: const Text('Edit'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.surfaceWhite,
@@ -101,7 +101,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 _confirmArchive(context, record);
               },
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Arsipkan Transaksi'),
+              label: const Text('Hapus'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.error,
                 side: BorderSide(color: AppColors.error),
@@ -123,10 +123,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Arsipkan Transaksi?'),
+        title: const Text('Hapus Transaksi?'),
         content: const Text(
-          'Transaksi ini dipindahkan ke Arsip dan dikeluarkan dari semua '
-          'perhitungan. Bisa dipulihkan kapan saja dari Riwayat.',
+          'Transaksi ini dipindahkan ke Baru dihapus dan dikeluarkan dari '
+          'semua perhitungan. Bisa dipulihkan kapan saja.',
         ),
         actions: [
           TextButton(
@@ -140,7 +140,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               if (repo.archiveTransaction(record.id)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Transaksi diarsipkan'),
+                    content: const Text('Transaksi dihapus'),
                     backgroundColor: AppColors.success,
                     // The undo lives here rather than in a separate screen,
                     // because the common case is a mis-tap seconds ago.
@@ -157,7 +157,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               backgroundColor: AppColors.error,
               foregroundColor: AppColors.surfaceWhite,
             ),
-            child: const Text('Arsipkan'),
+            child: const Text('Hapus'),
           ),
         ],
       ),
@@ -189,7 +189,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Transaksi'),
+          title: const Text('Edit'),
           content: SingleChildScrollView(
             child: Consumer<BudgetRepository>(
               builder: (context, repo, _) {
