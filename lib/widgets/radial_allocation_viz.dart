@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 import 'package:intl/intl.dart';
 
 class RadialAllocationViz extends StatefulWidget {
@@ -73,7 +74,7 @@ class _RadialAllocationVizState extends State<RadialAllocationViz>
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       height: 1.1,
                     ),
                   ),
@@ -84,7 +85,7 @@ class _RadialAllocationVizState extends State<RadialAllocationViz>
                         widget.centerLabel,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: AppColors.textTertiary,
                         ),
                       ),
                     ),
@@ -126,7 +127,7 @@ class _RadialPainter extends CustomPainter {
 
     // Subtle background track - warm beige tone
     final trackPaint = Paint()
-      ..color = const Color(0xFFE8E4DD).withValues(alpha: 0.3)
+      ..color = AppColors.divider
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -136,11 +137,11 @@ class _RadialPainter extends CustomPainter {
 
     for (final entry in allocations.entries) {
       final sweepAngle = (entry.value / total) * 2 * pi * animationValue;
-      final color = colors[entry.key] ?? const Color(0xFFB8A594);
+      final color = colors[entry.key] ?? AppColors.textTertiary;
 
       // Subtle inner shadow for depth (drawn first, behind arc)
       final innerShadowPaint = Paint()
-        ..color = const Color(0xFF504028).withValues(alpha: 0.04)
+        ..color = AppColors.textPrimary.withValues(alpha: 0.04)
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth - 2
         ..strokeCap = StrokeCap.round;
@@ -185,13 +186,13 @@ class _RadialPainter extends CustomPainter {
 
     // Inner circle - warm surface white with subtle gradient feel
     final innerBgPaint = Paint()
-      ..color = const Color(0xFFFDFBF7)
+      ..color = AppColors.surfaceWhite
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius - strokeWidth / 2 - 2, innerBgPaint);
     
     // Inner circle subtle border
     final innerBorderPaint = Paint()
-      ..color = const Color(0xFFE8E4DD).withValues(alpha: 0.5)
+      ..color = AppColors.border
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawCircle(center, radius - strokeWidth / 2 - 2, innerBorderPaint);

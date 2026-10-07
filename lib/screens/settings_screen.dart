@@ -20,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -838,7 +838,7 @@ class _CategoryRecoveryCard extends StatelessWidget {
                         width: 3,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade400,
+                          color: AppColors.dimmedIndicator,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -852,7 +852,7 @@ class _CategoryRecoveryCard extends StatelessWidget {
                               style:
                                   Theme.of(context).textTheme.bodyLarge?.copyWith(
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade600,
+                                        color: AppColors.dimmedTitle,
                                       ),
                             ),
                             Text(
@@ -860,7 +860,7 @@ class _CategoryRecoveryCard extends StatelessWidget {
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
-                                  ?.copyWith(color: Colors.grey.shade500),
+                                  ?.copyWith(color: AppColors.dimmedSecondary),
                             ),
                           ],
                         ),

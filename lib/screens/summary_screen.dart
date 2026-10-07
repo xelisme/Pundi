@@ -220,7 +220,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Consumer<BudgetRepository>(
           builder: (context, repo, _) {
@@ -471,7 +471,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                             height: 32,
                                             decoration: BoxDecoration(
                                               color: dimmed
-                                                  ? Colors.grey.shade400
+                                                  ? AppColors.dimmedIndicator
                                                   : color,
                                               borderRadius:
                                                   BorderRadius.circular(2),
@@ -494,7 +494,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                                         fontWeight:
                                                             FontWeight.w600,
                                                         color: dimmed
-                                                            ? Colors.grey.shade600
+                                                            ? AppColors.dimmedTitle
                                                             : null,
                                                       ),
                                                 ),
@@ -508,7 +508,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                                       .bodySmall
                                                       ?.copyWith(
                                                         color: dimmed
-                                                            ? Colors.grey.shade500
+                                                            ? AppColors.dimmedSecondary
                                                             : null,
                                                       ),
                                                 ),
@@ -524,7 +524,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,
                                                 color: dimmed
-                                                    ? Colors.grey.shade500
+                                                    ? AppColors.dimmedSecondary
                                                     : (balance.balance >= 0
                                                         ? AppColors.income
                                                         : AppColors.expense),

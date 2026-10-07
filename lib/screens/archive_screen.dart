@@ -26,7 +26,7 @@ class ArchiveScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Arsip')),
       // Consumer, not context.read: restoring or purging has to rebuild this
       // screen, and a read would register no dependency.

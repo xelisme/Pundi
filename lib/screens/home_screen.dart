@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? AppColors.red : AppColors.green,
+        backgroundColor: isError ? AppColors.error : AppColors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -421,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -462,11 +462,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: _isExpense ? AppColors.red : Colors.transparent,
+                  color: _isExpense ? AppColors.expense : Colors.transparent,
                   borderRadius: BorderRadius.circular(9),
                   boxShadow: _isExpense ? [
                     BoxShadow(
-                      color: AppColors.red.withValues(alpha: 0.3),
+                      color: AppColors.expense.withValues(alpha: 0.3),
                       offset: const Offset(0, 2),
                       blurRadius: 6,
                     ),

@@ -146,7 +146,7 @@ class DuolingoMetricCard extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  color: AppColors.darkBlue,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
           ),
@@ -155,7 +155,7 @@ class DuolingoMetricCard extends StatelessWidget {
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.grayLight,
+                    color: AppColors.textTertiary,
                   ),
             ),
           ],

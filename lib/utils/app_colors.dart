@@ -1,78 +1,66 @@
 import 'package:flutter/material.dart';
 
-/// Pundi Duolingo-Inspired Design System
-/// Bright, playful, gamified palette
-/// Bold green primary, vibrant semantic colors
+/// Pundi Design System
+/// Bold green primary, vibrant semantic colors, one cool neutral ramp.
+///
+/// Sumber kebenaran untuk warna. Berkas lain tidak boleh menulis hex sendiri.
 class AppColors {
   AppColors._();
 
-  // Duolingo Primary Colors
-  static const Color green = Color(0xFF58CC02); // Duolingo primary green
-  static const Color greenHover = Color(0xFF4BB200); // Green hover state
-  static const Color greenShadow = Color(0xFF61B800); // 3D button shadow
-  
-  // Duolingo Semantic Colors
-  static const Color blue = Color(0xFF1CB0F6); // Info/link blue
-  static const Color darkBlue = Color(0xFF100F3E); // Dark text/headers
-  static const Color red = Color(0xFFFF4B4B); // Error/destructive
-  static const Color orange = Color(0xFFFF9600); // Warning
-  static const Color golden = Color(0xFFFFC800); // Success/achievement
-  
-  // Neutral Grays (Duolingo style)
-  static const Color grayText = Color(0xFF4B4B4B); // Primary body text
-  static const Color grayLight = Color(0xFF777777); // Secondary text
-  static const Color grayNav = Color(0xFFAFAFAF); // Nav inactive
-  static const Color borderColor = Color(0xFFE5E5E5); // Borders/dividers
-  
-  // Backgrounds
-  static const Color background = Color(0xFFFFFFFF); // Pure white
-  static const Color surfaceWhite = Color(0xFFFEFEFE); // Card surfaces
-  static const Color footerGreen = Color(0xFF4EC604); // Footer accent
-  
-  // Gradient Colors (for hero sections)
-  static const Color gradientGreenStart = Color(0xFF58CC02);
-  static const Color gradientGreenEnd = Color(0xFFFFFFFF);
-  
-  // Income/Expense (adapted to Duolingo palette)
-  static const Color income = Color(0xFF58CC02); // Green for income
-  static const Color expense = Color(0xFFFF4B4B); // Red for expense
-  
-  // Text Hierarchy (Duolingo style)
-  static const Color textPrimary = darkBlue; // Deep blue-black
-  static const Color textSecondary = grayText; // Medium gray
-  static const Color textTertiary = grayLight; // Light gray
-  
-  // Borders and Dividers
-  static const Color border = borderColor;
-  static const Color divider = Color(0xFFF0F0F0); // Very light divider
-  
-  // State Colors
-  static const Color success = golden; // Achievement gold
-  static const Color error = red; // Error red
-  static const Color warning = orange; // Warning orange
-  
-  // Tints (light backgrounds)
-  static Color incomeTint = green.withValues(alpha: 0.1);
-  static Color expenseTint = red.withValues(alpha: 0.1);
-  static Color blueTint = blue.withValues(alpha: 0.1);
-  static Color goldenTint = golden.withValues(alpha: 0.1);
-  
-  // Shadow Colors (for 3D effect)
-  static Color shadowColor = Colors.black.withValues(alpha: 0.12);
-  static Color shadowLight = Colors.black.withValues(alpha: 0.06);
-  
-  // Legacy compatibility aliases (for gradual migration)
-  static const Color primary = green; // Main CTA color
-  static const Color accent = green; // Accent color
-  static const Color baseBeige = background; // Map old beige to white
-  static const Color baseBrown = darkBlue; // Map old brown to dark blue
-  static const Color textMedium = textSecondary;
-  static const Color textLight = textTertiary;
-  static Color primaryLight = green.withValues(alpha: 0.1);
+  // --- Brand ---
+  static const Color green = Color(0xFF58CC02);
+  static const Color greenShadow = Color(0xFF61B800); // tepi 3D tombol
+  static const Color blue = Color(0xFF1CB0F6);
+
+  // --- Uang ---
+  static const Color income = Color(0xFF58CC02);
+  static const Color expense = Color(0xFFFF4B4B);
+
+  // --- Hierarki teks ---
+  // #777777 → #6B6B6B: yang lama 4.48:1 di atas putih, nyaris di bawah
+  // lantai 4.5:1, dan ia memikul 52 call site teks sekunder.
+  static const Color textPrimary = Color(0xFF100F3E);
+  static const Color textSecondary = Color(0xFF4B4B4B);
+  static const Color textTertiary = Color(0xFF6B6B6B);
+
+  // Label navigasi nonaktif. #AFAFAF = 2.3:1, tak terbaca di ukuran label.
+  static const Color grayNav = Color(0xFF767676);
+
+  // --- Baris dimmed (kategori arsip / nonaktif) ---
+  // Sebelumnya Colors.grey.shade600/500/400. shade500 berada di 2.85:1 dan
+  // dipakai untuk nominal rupiah.
+  static const Color dimmedTitle = Color(0xFF5F5F5F);
+  static const Color dimmedSecondary = Color(0xFF767676);
+  static const Color dimmedIndicator = Color(0xFFB0B0B0);
+
+  // --- Garis ---
+  static const Color border = Color(0xFFE5E5E5);
+  static const Color divider = Color(0xFFF0F0F0);
+
+  // --- Permukaan ---
+  // Halaman. #FFFFFF juga: hanya beda 1/255 dari surfaceWhite, jadi tidak
+  // ada kartu yang bisa memisahkan diri kecuali lewat border.
+  static const Color background = Color(0xFFF3F6F3);
+  // Kartu, dan teks/ikon putih di atas hijau. #FEFEFE → putih betulan.
+  static const Color surfaceWhite = Color(0xFFFFFFFF);
+
+  // --- Status ---
+  static const Color error = Color(0xFFFF4B4B);
+  static const Color warning = Color(0xFFFF9600);
+  static const Color success = Color(0xFFFFC800);
+
+  // --- Kedalaman ---
+  static const Color cardShadow = Color(0x14000000); // hitam @ 8%
+  static const Color errorShadow = Color(0xFFCC0000);
+  static const Color warningShadow = Color(0xFFCC7700);
+  static const Color successShadow = Color(0xFFCCA000);
+
+  // --- Tint ---
   static Color accentTint = green.withValues(alpha: 0.06);
-  
-  // Category colors (bright, not muted)
-  static const Color categoryTint1 = Color(0xFF1CB0F6); // Bright blue
-  static const Color categoryTint2 = Color(0xFFFF9600); // Bright orange
-  static const Color categoryTint3 = Color(0xFFFFC800); // Bright golden
+
+  // --- Alias lama yang masih terpanggil di call site ---
+  static const Color accent = green;
+  static const Color baseBeige = background;
+  static const Color baseBrown = textPrimary;
+  static const Color textMedium = textSecondary;
 }

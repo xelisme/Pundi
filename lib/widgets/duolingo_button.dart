@@ -42,11 +42,11 @@ class _DuolingoButtonState extends State<DuolingoButton> {
       case DuolingoButtonType.secondary:
         return Colors.transparent;
       case DuolingoButtonType.danger:
-        return AppColors.red;
+        return AppColors.error;
       case DuolingoButtonType.warning:
-        return AppColors.orange;
+        return AppColors.warning;
       case DuolingoButtonType.success:
-        return AppColors.golden;
+        return AppColors.success;
     }
   }
 
@@ -55,13 +55,13 @@ class _DuolingoButtonState extends State<DuolingoButton> {
       case DuolingoButtonType.primary:
         return AppColors.greenShadow;
       case DuolingoButtonType.secondary:
-        return AppColors.grayText;
+        return AppColors.textSecondary;
       case DuolingoButtonType.danger:
-        return const Color(0xFFCC0000);
+        return AppColors.errorShadow;
       case DuolingoButtonType.warning:
-        return const Color(0xFFCC7700);
+        return AppColors.warningShadow;
       case DuolingoButtonType.success:
-        return const Color(0xFFCCA000);
+        return AppColors.successShadow;
     }
   }
 
@@ -76,7 +76,7 @@ class _DuolingoButtonState extends State<DuolingoButton> {
 
   Border? get _border {
     if (widget.type == DuolingoButtonType.secondary) {
-      return Border.all(color: AppColors.borderColor, width: 2);
+      return Border.all(color: AppColors.border, width: 2);
     }
     return null;
   }

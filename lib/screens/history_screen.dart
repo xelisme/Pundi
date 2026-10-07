@@ -319,7 +319,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Consumer2<BudgetRepository, LedgerFilterController>(
           builder: (context, repo, filters, _) {
