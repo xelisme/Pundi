@@ -439,8 +439,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               onChanged: (value) =>
                                   setState(() => _query = value),
                               textInputAction: TextInputAction.search,
+                              // The theme draws its own 2px OutlineInputBorder
+                              // for every state this field does not neutralize.
+                              // Only `border` was set here, so the themed
+                              // outline painted a second box inside this
+                              // Container — rounder (12) than the outer (8).
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
                                 hintText: 'Cari transaksi',
                                 isDense: true,
                                 contentPadding:
