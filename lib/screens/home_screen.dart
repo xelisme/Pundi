@@ -434,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: !_isExpense ? AppColors.green : Colors.transparent,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: !_isExpense ? [
                     BoxShadow(
                       color: AppColors.green.withValues(alpha: 0.3),
@@ -463,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: _isExpense ? AppColors.expense : Colors.transparent,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: _isExpense ? [
                     BoxShadow(
                       color: AppColors.expense.withValues(alpha: 0.3),

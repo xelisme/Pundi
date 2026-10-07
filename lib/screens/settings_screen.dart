@@ -922,7 +922,7 @@ class _ArchiveEntryRow extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.inventory_2_outlined,
                     color: AppColors.accent, size: 20),
@@ -1046,7 +1046,7 @@ class _SettingsAction extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 20),
             ),

@@ -271,9 +271,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: const EdgeInsets.all(3),
+                          padding: const EdgeInsets.all(4),
                           child: Row(
                             children: [
                               _buildPeriodTab('PER BULAN', SummaryPeriod.month),
@@ -407,7 +407,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.border, width: 1),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -747,7 +747,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: _openRangeSheet,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         highlightColor: Colors.white.withValues(alpha: 0.25),
         splashColor: Colors.white.withValues(alpha: 0.16),
         child: Container(
@@ -930,7 +930,7 @@ class _FilterChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? AppColors.green : AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(17),
+          borderRadius: BorderRadius.circular(9999),
           border: Border.all(
             color: selected ? AppColors.green : AppColors.border,
           ),
