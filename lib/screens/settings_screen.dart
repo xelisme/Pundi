@@ -328,7 +328,7 @@ class SettingsScreen extends StatelessWidget {
             // rather than just asserting that one exists.
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                 child: _AboutFooter(
                   notice: appCopyrightNotice,
                   version: appVersion,
