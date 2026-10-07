@@ -244,7 +244,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       children: [
                         Text(
                           'Ringkasan',
-                          style: GoogleFonts.nunito(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 28,
                             fontWeight: FontWeight.w800,
                             height: 1.1,
@@ -290,7 +290,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _scopeNote(summary),
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Colors.white70,
@@ -520,7 +520,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                             child: Text(
                                               'Rp ${_fmt(balance.balance)}',
                                               textAlign: TextAlign.right,
-                                              style: GoogleFonts.nunito(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,
                                                 color: dimmed
@@ -713,7 +713,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           const SizedBox(width: 10),
           Text(
             '${isExpense ? '−' : '+'}Rp ${_fmt(amount)}',
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.01,
@@ -768,7 +768,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Text(
             label,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -831,7 +831,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -863,7 +863,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         const SizedBox(height: 12),
         Text(
           'Rp ${_fmt(amount)}',
-          style: GoogleFonts.nunito(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: isLarge ? 36 : 28,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.03,
@@ -895,7 +895,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount)}',
-          style: GoogleFonts.nunito(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.02,
@@ -940,7 +940,7 @@ class _FilterChip extends StatelessWidget {
           children: [
             Text(
               label,
-              style: GoogleFonts.nunito(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: selected ? Colors.white : AppColors.textSecondary,
@@ -1032,7 +1032,7 @@ class _RangeSheetState extends State<_RangeSheet> {
         children: [
           Text(
             'Rentang periode',
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
@@ -1131,7 +1131,7 @@ class _DateField extends StatelessWidget {
               label.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.textTertiary,
-                    letterSpacing: 1.0,
+                    letterSpacing: 1.2,
                     fontSize: 10,
                   ),
             ),

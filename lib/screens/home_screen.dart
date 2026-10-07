@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 6),
         Text(
           'Rp ${_fmt(amount.toDouble())}',
-          style: GoogleFonts.nunito(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.02,
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             'Pundi',
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
                               height: 1.1,
@@ -248,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 4),
                           Text(
                             'Alokasi Anggaran',
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withValues(alpha: 0.85),
@@ -374,8 +374,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 Text(
                                   'Rp ${_fmt(net.toDouble())}',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 26,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 28,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: -0.03,
                                     color: net >= 0 ? AppColors.income : AppColors.expense,
@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'Pemasukan',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: !_isExpense ? Colors.white : AppColors.grayNav,
@@ -475,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'Pengeluaran',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: _isExpense ? Colors.white : AppColors.grayNav,
@@ -550,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             Text(
                               '${cat.percentage.toStringAsFixed(0)}%',
-                              style: GoogleFonts.nunito(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
@@ -598,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: _inputController,
                       keyboardType: TextInputType.number,
-                      style: GoogleFonts.nunito(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.02,
@@ -606,7 +606,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       decoration: InputDecoration(
                         hintText: '5000000',
-                        hintStyle: GoogleFonts.nunito(
+                        hintStyle: GoogleFonts.plusJakartaSans(
                           fontSize: 28,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.02,
@@ -786,7 +786,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   controller: _inputController,
                   keyboardType: TextInputType.number,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.02,
@@ -794,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: '250000',
-                    hintStyle: GoogleFonts.nunito(
+                    hintStyle: GoogleFonts.plusJakartaSans(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.02,

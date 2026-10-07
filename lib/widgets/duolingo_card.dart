@@ -91,8 +91,8 @@ class _DuolingoCardState extends State<DuolingoCard> {
 /// 
 /// Features:
 /// - Colored icon/emoji
-/// - Bold Nunito label
-/// - Large Nunito value
+/// - Bold Plus Jakarta Sans label
+/// - Large Plus Jakarta Sans value
 /// - Optional subtitle
 class DuolingoMetricCard extends StatelessWidget {
   final String label;

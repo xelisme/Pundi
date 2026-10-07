@@ -357,7 +357,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             children: [
                               Text(
                                 'Riwayat',
-                                style: GoogleFonts.nunito(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
                                   height: 1.1,
@@ -377,7 +377,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 filter.isActive || searchActive
                                     ? '${results.length} dari ${all.length} transaksi'
                                     : '${results.length} transaksi',
-                                style: GoogleFonts.nunito(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white.withValues(alpha: 0.85),
@@ -788,7 +788,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             children: [
                                               Text(
                                                 isExpense ? '−' : '+',
-                                                style: GoogleFonts.nunito(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w600,
                                                   color: color,
@@ -798,7 +798,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               Text(
                                                 'Rp ${_fmt(record.totalAmount)}',
                                                 textAlign: TextAlign.right,
-                                                style: GoogleFonts.nunito(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w600,
                                                   color: color,

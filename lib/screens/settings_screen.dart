@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Pengaturan',
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
                               height: 1.1,
@@ -47,7 +47,7 @@ class SettingsScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             'Kelola kategori alokasi',
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withValues(alpha: 0.85),
@@ -179,7 +179,7 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                       Text(
                                         '${category.percentage.toStringAsFixed(0)}%',
-                                        style: GoogleFonts.nunito(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.textPrimary,

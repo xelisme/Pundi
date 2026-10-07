@@ -134,7 +134,7 @@ class _DuolingoButtonState extends State<DuolingoButton> {
                   ],
                   Text(
                     widget.label.toUpperCase(),
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,

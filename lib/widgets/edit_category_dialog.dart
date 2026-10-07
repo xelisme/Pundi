@@ -262,7 +262,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
         children: [
           Text(
             isEditing ? 'Edit Kategori' : 'Tambah Kategori',
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -276,7 +276,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
               fontSize: 13,
               fontWeight: FontWeight.w400,
               color: AppColors.textTertiary,
-              letterSpacing: 0.2,
+              letterSpacing: 0,
             ),
           ),
         ],

@@ -137,106 +137,106 @@ class PundiApp extends StatelessWidget {
           ),
           scaffoldBackgroundColor: Colors.white,
           useMaterial3: true,
-          textTheme: GoogleFonts.nunitoTextTheme().copyWith(
-            displayLarge: GoogleFonts.nunito(
+          textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
+            displayLarge: GoogleFonts.plusJakartaSans(
               fontSize: 52,
               fontWeight: FontWeight.w800,
               letterSpacing: 0,
               height: 1.1,
               color: const Color(0xFF58CC02),
             ),
-            displayMedium: GoogleFonts.nunito(
+            displayMedium: GoogleFonts.plusJakartaSans(
               fontSize: 36,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.15,
               color: const Color(0xFF100F3E),
             ),
-            displaySmall: GoogleFonts.nunito(
+            displaySmall: GoogleFonts.plusJakartaSans(
               fontSize: 28,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.2,
               color: const Color(0xFF100F3E),
             ),
-            headlineLarge: GoogleFonts.nunito(
+            headlineLarge: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.25,
               color: const Color(0xFF100F3E),
             ),
-            headlineMedium: GoogleFonts.nunito(
+            headlineMedium: GoogleFonts.plusJakartaSans(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.3,
               color: const Color(0xFF100F3E),
             ),
-            headlineSmall: GoogleFonts.nunito(
+            headlineSmall: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.3,
               color: const Color(0xFF100F3E),
             ),
-            titleLarge: GoogleFonts.nunito(
+            titleLarge: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.4,
               color: const Color(0xFF100F3E),
             ),
-            titleMedium: GoogleFonts.nunito(
+            titleMedium: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.4,
               color: const Color(0xFF100F3E),
             ),
-            titleSmall: GoogleFonts.nunito(
+            titleSmall: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               height: 1.4,
               color: const Color(0xFF4B4B4B),
             ),
-            bodyLarge: GoogleFonts.nunito(
+            bodyLarge: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
               color: const Color(0xFF4B4B4B),
             ),
-            bodyMedium: GoogleFonts.nunito(
+            bodyMedium: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
               color: const Color(0xFF777777),
             ),
-            bodySmall: GoogleFonts.nunito(
+            bodySmall: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w400,
               letterSpacing: 0,
               height: 1.5,
               color: const Color(0xFF777777),
             ),
-            labelLarge: GoogleFonts.nunito(
+            labelLarge: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
               height: 1.4,
               color: const Color(0xFF100F3E),
             ),
-            labelMedium: GoogleFonts.nunito(
+            labelMedium: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 0,
               height: 1.4,
               color: const Color(0xFF4B4B4B),
             ),
-            labelSmall: GoogleFonts.nunito(
+            labelSmall: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 2,
@@ -257,7 +257,7 @@ class PundiApp extends StatelessWidget {
             centerTitle: true,
             backgroundColor: const Color(0xFF58CC02),
             foregroundColor: Colors.white,
-            titleTextStyle: GoogleFonts.nunito(
+            titleTextStyle: GoogleFonts.plusJakartaSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -284,7 +284,7 @@ class PundiApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFFF4B4B), width: 2),
             ),
-            hintStyle: GoogleFonts.nunito(
+            hintStyle: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w400,
               color: const Color(0xFF777777),
@@ -301,7 +301,7 @@ class PundiApp extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              textStyle: GoogleFonts.nunito(
+              textStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
@@ -319,7 +319,7 @@ class PundiApp extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              textStyle: GoogleFonts.nunito(
+              textStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,

@@ -172,7 +172,7 @@ class _ArchiveSection extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
@@ -189,7 +189,7 @@ class _ArchiveSection extends StatelessWidget {
                   ),
                   child: Text(
                     '$count',
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textSecondary,
