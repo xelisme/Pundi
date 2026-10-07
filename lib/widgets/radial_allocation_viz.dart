@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 class RadialAllocationViz extends StatefulWidget {
   final Map<String, double> allocations;
   final Map<String, Color> colors;
-  final double centerAmount;
+  /// Nominal di lubang donat. Null berarti tidak digambar — donat dan
+  /// persen kategori sudah cukup bercerita, bukan memajang angka nol.
+  final double? centerAmount;
   final String centerLabel;
   final double strokeWidth;
   final double? size;
@@ -15,7 +17,7 @@ class RadialAllocationViz extends StatefulWidget {
     super.key,
     required this.allocations,
     required this.colors,
-    this.centerAmount = 0,
+    this.centerAmount,
     this.centerLabel = '',
     this.strokeWidth = 28,
     this.size,
@@ -69,16 +71,18 @@ class _RadialAllocationVizState extends State<RadialAllocationViz>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Rp ${_fmt(widget.centerAmount)}',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      height: 1.1,
+                  if (widget.centerAmount != null)
+                    Text(
+                      'Rp ${_fmt(widget.centerAmount!)}',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                  if (widget.centerLabel.isNotEmpty)
+                  if (widget.centerAmount != null &&
+                      widget.centerLabel.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
