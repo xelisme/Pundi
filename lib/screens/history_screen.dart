@@ -500,6 +500,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       filter: filter,
                       onClear: () =>
                           context.read<LedgerFilterController>().clear(),
+                      categories: repo.activeCategories
+                          .map((c) => c.name)
+                          .toList(),
+                      onCategory: filters.setCategory,
                     ),
                   ),
 
@@ -854,52 +858,114 @@ class _HistoryScreenState extends State<HistoryScreen> {
 /// shared "Seluruhnya" row shows only that category's part of the amount, which
 /// is what makes the list add up to the Ringkasan total — but on its own it
 /// reads as a wrong figure, so it is said out loud.
+/// The "show everything" choice in the category picker below.
+/// [allCategoriesLabel] is 'Seluruhnya', so this exact string never collides
+/// with a real category in practice.
+const String _allCategoriesOption = 'Semua kategori';
+
 class _ActiveFilterBar extends StatelessWidget {
-  const _ActiveFilterBar({required this.filter, required this.onClear});
+  const _ActiveFilterBar({
+    required this.filter,
+    required this.onClear,
+    required this.categories,
+    required this.onCategory,
+  });
 
   final LedgerFilter filter;
   final VoidCallback onClear;
+  final List<String> categories;
+  final ValueChanged<String?> onCategory;
 
   @override
   Widget build(BuildContext context) {
+    // The selection may name a category the menu no longer offers (archived
+    // after narrowing). Dropping it would crash the dropdown, so it stays as
+    // an extra item rather than vanishing mid-selection.
+    final current = filter.categoryName;
+    final options = <String>[_allCategoriesOption, ...categories];
+    if (current != null && !options.contains(current)) options.add(current);
     return Container(
       color: AppColors.accentTint,
       padding: const EdgeInsets.fromLTRB(24, 12, 16, 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.filter_alt_outlined,
-              size: 18, color: AppColors.accent),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  filter.describe,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              const Icon(Icons.filter_alt_outlined,
+                  size: 18, color: AppColors.accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      filter.describe,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    if (filter.hasCategory) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Nominal mengikuti bagian ${filter.categoryLabel} saja.',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    ],
+                  ],
                 ),
-                if (filter.hasCategory) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Nominal mengikuti bagian ${filter.categoryLabel} saja.',
-                    style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onClear,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.accent,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 36),
+                ),
+                child: const Text('Hapus'),
+              ),
+            ],
+          ),
+          // Switch pockets without going back: arriving from Ringkasan with
+          // Bebas selected used to lock the list there, and the only way out
+          // was clearing the whole filter and starting over.
+          if (options.length > 1) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.category_outlined,
+                    size: 18, color: AppColors.accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: current ?? _allCategoriesOption,
+                      isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down,
+                          size: 20, color: AppColors.accent),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                      dropdownColor: AppColors.surfaceWhite,
+                      items: options
+                          .map((name) => DropdownMenuItem(
+                                value: name,
+                                child: Text(name),
+                              ))
+                          .toList(),
+                      onChanged: (name) {
+                        if (name != null) {
+                          onCategory(name == _allCategoriesOption ? null : name);
+                        }
+                      },
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: onClear,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: const Size(0, 36),
-            ),
-            child: const Text('Hapus'),
-          ),
+          ],
         ],
       ),
     );
