@@ -410,7 +410,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(12),
+                        // An input, not a card: radius 8 like every other
+                        // field in the app, so it reads as a tool rather
+                        // than as a second table card stacked above the list.
+                        borderRadius: BorderRadius.circular(8),
                         // Focus used to leave no trace here: the border sat in
                         // one color whether or not the cursor was in the field,
                         // so a tap that landed elsewhere looked identical to a
@@ -423,7 +426,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           width: 1,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
                           const Icon(Icons.search,
@@ -441,7 +444,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 hintText: 'Cari transaksi',
                                 isDense: true,
                                 contentPadding:
-                                    EdgeInsets.symmetric(vertical: 14),
+                                    EdgeInsets.symmetric(vertical: 12),
                               ),
                             ),
                           ),
