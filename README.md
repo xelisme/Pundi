@@ -2,7 +2,10 @@
 
 <div align="center">
 
-[![Tonton demosinya (52 detik)](docs/video/poster.jpg)](docs/video/pundi-demo.mp4)
+
+https://github.com/user-attachments/assets/8b640859-7218-4fc1-bea7-15185a92cdb6
+
+
 
 **▶️ [Tonton cara pakainya dulu — video demo 52 detik, ada narasi Bahasa Indonesia](docs/video/pundi-demo.mp4)**
 *(klik membuka pemutar video di GitHub; di HP langsung putar)*
