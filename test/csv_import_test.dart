@@ -130,13 +130,16 @@ lanjutan barang",2026-06-19,2026-08-22,00:25:41,Bebas,
       expect(imported, 2);
       expect(fresh.lastImportFailedLines, isEmpty);
 
-      final income =
-          fresh.history.firstWhere((t) => t.type == TransactionType.income);
+      final income = fresh.history.firstWhere(
+        (t) => t.type == TransactionType.income,
+      );
       expect(income.items, 'Gajian bulan Agustus');
       expect(income.totalAmount, 5000000);
       // The frozen split must survive the trip too.
-      expect(income.splits.fold<double>(0, (s, sp) => s + sp.allocatedAmount),
-          5000000);
+      expect(
+        income.splits.fold<double>(0, (s, sp) => s + sp.allocatedAmount),
+        5000000,
+      );
     });
 
     test('an income note containing expense-ish words stays income', () async {

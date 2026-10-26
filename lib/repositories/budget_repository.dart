@@ -101,8 +101,9 @@ class BudgetRepository extends ChangeNotifier {
   // "Seluruhnya" transactions created while a category is hidden still allocate
   // to it (money is never silently lost). Active vs hidden only matters for the
   // visible allocation UI, not for the math.
-  Map<String, double> _snapshotPercentages() =>
-      {for (final c in _categories) c.name: c.percentage};
+  Map<String, double> _snapshotPercentages() => {
+    for (final c in _categories) c.name: c.percentage,
+  };
 
   // Split an amount across categories using a FROZEN percentage snapshot,
   // not the currently-active _categories. Explicit-label transactions must
@@ -113,7 +114,9 @@ class BudgetRepository extends ChangeNotifier {
   // redistributed proportionally across the remaining ACTIVE categories so
   // that the FULL amount is always allocated (no silent money loss).
   List<CategorySplitResult> _splitBySnapshot(
-      double amount, Map<String, double> snapshot) {
+    double amount,
+    Map<String, double> snapshot,
+  ) {
     // 1) Active categories that still have a (non-zero) snapshot share.
     final activeShares = <AllocationCategory, double>{};
     double activePctSum = 0;
@@ -134,7 +137,7 @@ class BudgetRepository extends ChangeNotifier {
           CategorySplitResult(
             category: e.key,
             allocatedAmount: (amount * e.value / 100).roundToDouble(),
-          )
+          ),
       ];
     }
 
@@ -147,7 +150,7 @@ class BudgetRepository extends ChangeNotifier {
       final each = (amount / actives.length).roundToDouble();
       return [
         for (final c in actives)
-          CategorySplitResult(category: c, allocatedAmount: each)
+          CategorySplitResult(category: c, allocatedAmount: each),
       ];
     }
     // Normalize active shares so they sum to 100, then split the full amount.
@@ -155,9 +158,8 @@ class BudgetRepository extends ChangeNotifier {
       for (final e in activeShares.entries)
         CategorySplitResult(
           category: e.key,
-          allocatedAmount:
-              (amount * (e.value / activePctSum)).roundToDouble(),
-        )
+          allocatedAmount: (amount * (e.value / activePctSum)).roundToDouble(),
+        ),
     ];
   }
 
@@ -179,8 +181,9 @@ class BudgetRepository extends ChangeNotifier {
       snapshot = _snapshotPercentages();
       splits = _splitBySnapshot(amount, snapshot);
     } else {
-      final category =
-          _categories.where((c) => c.name == chargedToCategory).firstOrNull;
+      final category = _categories
+          .where((c) => c.name == chargedToCategory)
+          .firstOrNull;
       splits = category != null
           ? [CategorySplitResult(category: category, allocatedAmount: amount)]
           : <CategorySplitResult>[];
@@ -219,8 +222,9 @@ class BudgetRepository extends ChangeNotifier {
       snapshot = _snapshotPercentages();
       splits = _splitBySnapshot(amount, snapshot);
     } else {
-      final category =
-          _categories.where((c) => c.name == chargedToCategory).firstOrNull;
+      final category = _categories
+          .where((c) => c.name == chargedToCategory)
+          .firstOrNull;
       splits = category != null
           ? [CategorySplitResult(category: category, allocatedAmount: amount)]
           : <CategorySplitResult>[];
@@ -318,13 +322,19 @@ class BudgetRepository extends ChangeNotifier {
     // it (reactivate + un-archive) instead of creating a duplicate. The revived
     // row keeps its id and colour so historical splits still line up.
     final existing = _categories
-        .where((c) => !c.isActive && c.name.toLowerCase() == category.name.toLowerCase())
+        .where(
+          (c) =>
+              !c.isActive &&
+              c.name.toLowerCase() == category.name.toLowerCase(),
+        )
         .firstOrNull;
     if (existing != null) {
       _categories = _categories
-          .map((c) => c.id == existing.id
-              ? existing.copyWith(isActive: true, isArchived: false)
-              : c)
+          .map(
+            (c) => c.id == existing.id
+                ? existing.copyWith(isActive: true, isArchived: false)
+                : c,
+          )
           .toList();
       _saveCategoriesLocal();
       notifyListeners();
@@ -333,7 +343,7 @@ class BudgetRepository extends ChangeNotifier {
     // Guard: adding must not push total ACTIVE allocation above 100%.
     final newTotal =
         activeCategories.fold<double>(0, (s, c) => s + c.percentage) +
-            category.percentage;
+        category.percentage;
     if (newTotal > 100.0001) return; // refused; UI surfaces the error
     _categories = [..._categories, category];
     _saveCategoriesLocal();
@@ -342,11 +352,10 @@ class BudgetRepository extends ChangeNotifier {
 
   void updateCategory(String id, AllocationCategory updated) {
     // Guard: editing must not push total ACTIVE allocation above 100%.
-    final othersActive =
-        activeCategories.where((c) => c.id != id);
+    final othersActive = activeCategories.where((c) => c.id != id);
     final newTotal =
         othersActive.fold<double>(0, (s, c) => s + c.percentage) +
-            updated.percentage;
+        updated.percentage;
     if (newTotal > 100.0001) return; // refused; UI surfaces the error
     _categories = _categories.map((c) => c.id == id ? updated : c).toList();
     _saveCategoriesLocal();
@@ -377,7 +386,9 @@ class BudgetRepository extends ChangeNotifier {
 
   // A transaction "references" a category if it is explicitly charged to it,
   // or is a "Seluruhnya" transaction whose frozen snapshot included it.
-  bool Function(TransactionRecord) _referencesCategory(AllocationCategory cat) =>
+  bool Function(TransactionRecord) _referencesCategory(
+    AllocationCategory cat,
+  ) =>
       (TransactionRecord t) =>
           t.chargedTo == cat.name ||
           (t.chargedTo == allCategoriesLabel &&
@@ -417,9 +428,9 @@ class BudgetRepository extends ChangeNotifier {
     // Archive FIRST so that re-splitting below cannot route money back into
     // `cat` — _snapshotPercentages() must already exclude it.
     _categories = _categories
-        .map((c) => c.id == id
-            ? c.copyWith(isActive: false, isArchived: true)
-            : c)
+        .map(
+          (c) => c.id == id ? c.copyWith(isActive: false, isArchived: true) : c,
+        )
         .toList();
     _saveCategoriesLocal();
 
@@ -449,7 +460,10 @@ class BudgetRepository extends ChangeNotifier {
         final target = _categories.firstWhere((c) => c.name == reassignTo);
         return t.copyWith(
           splits: [
-            CategorySplitResult(category: target, allocatedAmount: t.totalAmount)
+            CategorySplitResult(
+              category: target,
+              allocatedAmount: t.totalAmount,
+            ),
           ],
           chargedTo: reassignTo,
           allocationSnapshot: const {},
@@ -474,12 +488,14 @@ class BudgetRepository extends ChangeNotifier {
     if (target == null || (target.isActive && !target.isArchived)) return false;
     final newTotal =
         activeCategories.fold<double>(0, (s, c) => s + c.percentage) +
-            target.percentage;
+        target.percentage;
     final canActivate = newTotal <= 100.0001;
     _categories = _categories
-        .map((c) => c.id == id
-            ? c.copyWith(isActive: canActivate, isArchived: false)
-            : c)
+        .map(
+          (c) => c.id == id
+              ? c.copyWith(isActive: canActivate, isArchived: false)
+              : c,
+        )
         .toList();
     _saveCategoriesLocal();
     notifyListeners();
@@ -497,12 +513,15 @@ class BudgetRepository extends ChangeNotifier {
       // Re-split using the transaction's OWN frozen snapshot, not current categories.
       splits = _splitBySnapshot(old.totalAmount, old.allocationSnapshot);
     } else {
-      final category =
-          _categories.where((c) => c.name == newChargedTo).firstOrNull;
+      final category = _categories
+          .where((c) => c.name == newChargedTo)
+          .firstOrNull;
       splits = category != null
           ? [
               CategorySplitResult(
-                  category: category, allocatedAmount: old.totalAmount)
+                category: category,
+                allocatedAmount: old.totalAmount,
+              ),
             ]
           : <CategorySplitResult>[];
     }
@@ -542,7 +561,9 @@ class BudgetRepository extends ChangeNotifier {
       splits = _splitBySnapshot(amount, old.allocationSnapshot);
     } else {
       // Explicit label: 100% to that category, percentages ignored entirely.
-      final category = _categories.where((c) => c.name == chargedTo).firstOrNull;
+      final category = _categories
+          .where((c) => c.name == chargedTo)
+          .firstOrNull;
       splits = category != null
           ? [CategorySplitResult(category: category, allocatedAmount: amount)]
           : old.splits;
@@ -635,7 +656,9 @@ class BudgetRepository extends ChangeNotifier {
 
   String exportToCsv() {
     final buffer = StringBuffer();
-    buffer.writeln('Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran,Arsip');
+    buffer.writeln(
+      'Toko,Total,Items,Tanggal Struk,Tanggal Input,Waktu Input,Dibebankan Ke,Snapshot,Metode Pembayaran,Arsip',
+    );
 
     // Deliberately _history, not activeHistory: an archived row is still the
     // user's data, and dropping it here would make "export lalu install ulang"
@@ -643,30 +666,49 @@ class BudgetRepository extends ChangeNotifier {
     // returns the record to the archive instead of quietly restoring it into
     // the totals.
     for (final record in _history) {
-      final toko = _escapeCsv(record.merchantName.isEmpty ? 'Manual Input' : record.merchantName);
+      final toko = _escapeCsv(
+        record.merchantName.isEmpty ? 'Manual Input' : record.merchantName,
+      );
       final total = record.totalAmount.toInt();
       // Income rows ALWAYS carry the "(Pemasukan)" marker, even when they
       // have notes — importFromCsv uses it to tell income from expense, so a
       // note that happens to read like an expense must not flip the row's type.
       final items = record.type == TransactionType.income
-          ? _escapeCsv('${record.items.isEmpty ? record.rawInput : record.items} (Pemasukan)')
+          ? _escapeCsv(
+              '${record.items.isEmpty ? record.rawInput : record.items} (Pemasukan)',
+            )
           : _escapeCsv(record.items.isEmpty ? record.rawInput : record.items);
-      final tanggalStruk = record.receiptDate > 0 
-          ? DateTime.fromMillisecondsSinceEpoch(record.receiptDate).toIso8601String().substring(0, 10)
-          : DateTime.fromMillisecondsSinceEpoch(record.timestamp).toIso8601String().substring(0, 10);
-      final tanggalInput = DateTime.fromMillisecondsSinceEpoch(record.timestamp).toIso8601String().substring(0, 10);
-      final waktuInput = DateFormat('HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(record.timestamp));
+      final tanggalStruk = record.receiptDate > 0
+          ? DateTime.fromMillisecondsSinceEpoch(
+              record.receiptDate,
+            ).toIso8601String().substring(0, 10)
+          : DateTime.fromMillisecondsSinceEpoch(
+              record.timestamp,
+            ).toIso8601String().substring(0, 10);
+      final tanggalInput = DateTime.fromMillisecondsSinceEpoch(
+        record.timestamp,
+      ).toIso8601String().substring(0, 10);
+      final waktuInput = DateFormat(
+        'HH:mm:ss',
+      ).format(DateTime.fromMillisecondsSinceEpoch(record.timestamp));
       final chargedTo = record.chargedTo ?? allCategoriesLabel;
       // Frozen allocation snapshot, e.g. "Tabungan:50;Investasi:30;Bebas:20".
       // Empty for explicit-label transactions (they ignore percentages).
+      // Percentages keep their decimals — a 33.33% pocket that round-trips as
+      // "33" would re-split every shared receipt wrong on import.
       final snapshotStr = record.allocationSnapshot.entries
-          .map((e) => '${e.key}:${e.value.toInt()}')
+          .map((e) => '${_snapshotName(e.key)}:${e.value}')
           .join(';');
-      
+
       // Appended last so older 8-column exports keep importing unchanged.
-      buffer.writeln('$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,$chargedTo,$snapshotStr,${_escapeCsv(record.paymentMethod)},${record.isArchived ? 'Ya' : 'Tidak'}');
+      // chargedTo and the snapshot cell hide behind _escapeCsv like every
+      // other free-text column: a pocket named "A, B" must not shift nine
+      // columns sideways, and its snapshot cell must not leak its commas in.
+      buffer.writeln(
+        '$toko,$total,$items,$tanggalStruk,$tanggalInput,$waktuInput,${_escapeCsv(chargedTo)},${_escapeCsv(snapshotStr)},${_escapeCsv(record.paymentMethod)},${record.isArchived ? 'Ya' : 'Tidak'}',
+      );
     }
-    
+
     return buffer.toString();
   }
 
@@ -676,6 +718,18 @@ class BudgetRepository extends ChangeNotifier {
     }
     return value;
   }
+
+  /// Snapshot names ride in one CSV cell whose internal separators are ";" for
+  /// pairs and ":" for name/percent. A pocket can be named either, so the name
+  /// is percent-escaped before joining; [_parseSnapshotName] unfolds it back.
+  /// Percent itself goes first so a literal "%3B" cannot be misread on the way
+  /// out, and decoding only recognizes the exact three tokens, so any older
+  /// file — whose names were written raw anyway — parses unchanged.
+  String _snapshotName(String name) =>
+      name.replaceAll('%', '%25').replaceAll(';', '%3B').replaceAll(':', '%3A');
+
+  String _parseSnapshotName(String name) =>
+      name.replaceAll('%3A', ':').replaceAll('%3B', ';').replaceAll('%25', '%');
 
   int importFromCsv(String csvContent) {
     _lastImportFailedLines.clear();
@@ -698,8 +752,9 @@ class BudgetRepository extends ChangeNotifier {
     for (int i = 1; i < rows.length; i++) {
       final parts = rows[i].map((e) => e.toString()).toList();
       if (parts.length < 7) {
-        _lastImportFailedLines
-            .add('Baris ${i + 1}: kolom tidak lengkap (${parts.length}/7 minimal)');
+        _lastImportFailedLines.add(
+          'Baris ${i + 1}: kolom tidak lengkap (${parts.length}/7 minimal)',
+        );
         continue;
       }
 
@@ -707,8 +762,9 @@ class BudgetRepository extends ChangeNotifier {
       final totalStr = parts[1].trim();
       final total = double.tryParse(totalStr);
       if (total == null || total <= 0) {
-        _lastImportFailedLines
-            .add('Baris ${i + 1}: nominal tidak valid "$totalStr"');
+        _lastImportFailedLines.add(
+          'Baris ${i + 1}: nominal tidak valid "$totalStr"',
+        );
         continue;
       }
 
@@ -727,12 +783,13 @@ class BudgetRepository extends ChangeNotifier {
       // Column 9 (optional): archive flag, "Ya"/"Tidak". Files written before
       // archiving existed have no 10th column; those rows were all live, so an
       // absent value means not archived rather than archived.
-      final archivedRaw =
-          (parts.length > 9 ? parts[9].trim() : '').toLowerCase();
+      final archivedRaw = (parts.length > 9 ? parts[9].trim() : '')
+          .toLowerCase();
       final isArchived =
           archivedRaw == 'ya' || archivedRaw == 'y' || archivedRaw == 'true';
 
-      final isIncome = items.toLowerCase().contains('pemasukan') ||
+      final isIncome =
+          items.toLowerCase().contains('pemasukan') ||
           toko.toLowerCase().contains('pemasukan') ||
           (chargedTo != 'Bebas' && items.toLowerCase().contains('uang'));
 
@@ -745,8 +802,10 @@ class BudgetRepository extends ChangeNotifier {
       // Both must come from the file. Stamping either with DateTime.now()
       // collapses every imported month into the import month, which is what
       // made Ringkasan totals wrong after a CSV import.
-      final receiptDate =
-          _parseCsvDate(tanggalStruk, fallback: DateTime.now().millisecondsSinceEpoch);
+      final receiptDate = _parseCsvDate(
+        tanggalStruk,
+        fallback: DateTime.now().millisecondsSinceEpoch,
+      );
       // Fall back to the receipt instant when the file has no input date, so a
       // row is never filed under an unrelated month.
       final inputDate = _parseCsvDate(
@@ -756,8 +815,10 @@ class BudgetRepository extends ChangeNotifier {
       );
 
       final merchantName = toko == 'Manual Input' ? '' : toko;
-      var cleanItems =
-          items.replaceAll(RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false), '');
+      var cleanItems = items.replaceAll(
+        RegExp(r'\s*\(Pemasukan\)\s*', caseSensitive: false),
+        '',
+      );
       // Older exports wrote the amount into the Items column when an income row
       // had no note ("107000.0 (Pemasukan)"), so re-importing those files put
       // the amount on screen as if the user had typed it. A cleaned value that
@@ -783,8 +844,9 @@ class BudgetRepository extends ChangeNotifier {
         splits = _splitBySnapshot(total, snapshot);
       } else {
         // Explicit category label -> 100% to that category, percentages ignored.
-        final category =
-            _categories.where((c) => c.name == chargedTo).firstOrNull;
+        final category = _categories
+            .where((c) => c.name == chargedTo)
+            .firstOrNull;
         splits = category != null
             ? [CategorySplitResult(category: category, allocatedAmount: total)]
             : <CategorySplitResult>[];
@@ -815,16 +877,19 @@ class BudgetRepository extends ChangeNotifier {
   }
 
   // Parse "Tabungan:50;Investasi:30;Bebas:20" -> {Tabungan:50,...}
+  //
+  // The percent side is everything after the LAST ':', because the name is
+  // allowed to contain ':' itself (it arrives escaped; legacy files wrote it
+  // raw and previously lost every such pocket silently).
   Map<String, double> _parseSnapshot(String raw) {
     final map = <String, double>{};
     if (raw.isEmpty) return map;
     for (final pair in raw.split(';')) {
-      final kv = pair.split(':');
-      if (kv.length == 2) {
-        final name = kv[0].trim();
-        final pct = double.tryParse(kv[1].trim());
-        if (name.isNotEmpty && pct != null) map[name] = pct;
-      }
+      final idx = pair.lastIndexOf(':');
+      if (idx <= 0) continue;
+      final name = _parseSnapshotName(pair.substring(0, idx)).trim();
+      final pct = double.tryParse(pair.substring(idx + 1).trim());
+      if (name.isNotEmpty && pct != null) map[name] = pct;
     }
     return map;
   }
