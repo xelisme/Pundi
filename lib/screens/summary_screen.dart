@@ -6,8 +6,6 @@ import '../models/ledger_filter.dart';
 import '../models/period_summary.dart';
 import '../models/transaction.dart';
 import '../repositories/budget_repository.dart';
-import '../state/ledger_filter_controller.dart';
-import '../state/main_tab_controller.dart';
 import '../utils/app_colors.dart';
 
 class SummaryScreen extends StatefulWidget {
@@ -17,11 +15,11 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-/// Month stepping and the range sheet own period selection; the PER BULAN /
-/// SEMUA toggle used to live here.
+/// Month stepping and the range sheet own period selection.
 
 class _SummaryScreenState extends State<SummaryScreen> {
   DateTime _selectedMonth = DateTime.now();
+
   /// Semua mode: every month with records, bounded by the first and last
   /// recording rather than a hardcoded century. Set only from the "Semua"
   /// preset; the chevrons and month stepping own everything else.
@@ -33,20 +31,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
   /// fighting a stale range.
   LedgerFilter? _range;
 
-  /// Null means every category.
-  String? _category;
-
   LedgerFilter _filterFor(BudgetRepository repo) {
-    final base = _range ??
+    return _range ??
         (_allTime
             ? _allTimeBounds(repo.activeHistory)
             : LedgerFilter(
                 from: DateTime(_selectedMonth.year, _selectedMonth.month, 1),
                 to: DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0),
               ));
-    return _category == null
-        ? base
-        : base.copyWith(categoryName: _category);
   }
 
   /// The Semua span: the first recording's day through the last recording's
@@ -57,8 +49,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     DateTime? first;
     DateTime? last;
     for (final record in records) {
-      final date =
-          DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
+      final date = DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
       if (first == null || date.isBefore(first)) first = date;
       if (last == null || date.isAfter(last)) last = date;
     }
@@ -69,20 +60,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
       from: DateTime(first.year, first.month, first.day),
       to: DateTime(last.year, last.month, last.day, 23, 59, 59, 999),
     );
-  }
-
-  /// Hand the current selection to Riwayat.
-  ///
-  /// Called only from [_openHistory], never when the selection changes. Riwayat
-  /// is a permanent tab in the same shell, so publishing on every period or
-  /// category change would make its contents depend on which screen the user
-  /// happened to visit last — stepping back a month in Ringkasan would silently
-  /// hide transactions in Riwayat. The selection transfers when it is asked for,
-  /// and Riwayat shows what it received until the filter is cleared.
-  void _publish() {
-    if (!mounted) return;
-    final repo = context.read<BudgetRepository>();
-    context.read<LedgerFilterController>().setFilter(_filterFor(repo));
   }
 
   bool get _isRangeMode => _range != null;
@@ -100,14 +77,22 @@ class _SummaryScreenState extends State<SummaryScreen> {
   void _previousMonth() {
     if (!_canStepMonths) return;
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month - 1,
+        1,
+      );
     });
   }
 
   void _nextMonth() {
     if (!_canStepMonths) return;
     final now = DateTime.now();
-    final nextMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    final nextMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      1,
+    );
     if (!nextMonth.isBefore(DateTime(now.year, now.month + 1, 1))) return;
     setState(() => _selectedMonth = nextMonth);
   }
@@ -149,10 +134,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     });
   }
 
-  void _applyCategory(String? name) {
-    setState(() => _category = name);
-  }
-
   Future<void> _openRangeSheet() async {
     final picked = await showModalBottomSheet<LedgerFilter>(
       context: context,
@@ -171,17 +152,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
     _applyPreset(picked);
   }
 
-  /// Send the user to Riwayat with the same selection applied there, so the list
-  /// adds up to the total above it.
-  void _openHistory() {
-    _publish();
-    context.read<MainTabController>().select(MainTabController.riwayat);
-  }
-
   String _periodLabel() {
     if (_isRangeMode) return _formatRange(_range!);
     if (_allTime) return 'SEMUA PERIODE';
-    return DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth).toUpperCase();
+    return DateFormat(
+      'MMMM yyyy',
+      'id_ID',
+    ).format(_selectedMonth).toUpperCase();
   }
 
   /// "1 - 30 SEP 2026" for one month, "5 AGU - 2 SEP 2026" across months.
@@ -223,10 +200,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
     return '$count · ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}';
   }
 
-  /// Describes the period for the per-category section, including which category
-  /// the rows are currently narrowed to.
+  /// Describes the period the per-category section holds.
   String _tableCaption() {
-    if (_category != null) return 'Kategori $_category';
     if (_isRangeMode) return _formatRange(_range!).toLowerCase();
     if (_allTime) return 'Akumulasi semua periode';
     return 'Periode ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth)}';
@@ -242,10 +217,11 @@ class _SummaryScreenState extends State<SummaryScreen> {
             // Filter first, then aggregate. Reusing calculatePeriodSummary on the
             // narrowed records keeps one aggregation implementation, so a
             // filtered total cannot quietly disagree with an unfiltered one.
-            final visible =
-                applyLedgerFilter(repo.activeHistory, _filterFor(repo));
-            final summary =
-                calculatePeriodSummary(visible, repo.categories);
+            final visible = applyLedgerFilter(
+              repo.activeHistory,
+              _filterFor(repo),
+            );
+            final summary = calculatePeriodSummary(visible, repo.categories);
             final label = _periodLabel();
 
             return CustomScrollView(
@@ -306,7 +282,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 // Hero numbers - Editorial pull quote style
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceWhite,
@@ -321,7 +300,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                             context,
                             label: 'Sisa Bersih',
                             amount: summary.netIncome,
-                            color: summary.netIncome >= 0 ? AppColors.income : AppColors.expense,
+                            color: summary.netIncome >= 0
+                                ? AppColors.income
+                                : AppColors.expense,
                             isLarge: true,
                           ),
 
@@ -361,40 +342,31 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ),
                   ),
                 ),
-
-                // The rows behind the number above, on this screen. Narrowing by
-                // category used to end on a separate "Lihat N transaksi" tap, so
-                // picking a pocket cost a scroll down, a tap, a scroll back and
-                // another tap before any transaction was visible.
-                if (_hasNarrowed && summary.recordCount > 0)
-                  SliverToBoxAdapter(
-                    child: _buildInlineList(context, visible),
-                  ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                // Category balances - Data table style
+                // Category balances - Data table style.
                 if (summary.categoryBalances.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'PER KATEGORI',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.textTertiary,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: AppColors.textTertiary,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            // The period or category these rows describe,
-                            // plus how to narrow further. Stating it here keeps
-                            // the table honest about what it is holding.
-                            '${_tableCaption()} · tap untuk menyaring',
+                            // The period these rows describe. Stating it here
+                            // keeps the table honest about what it is holding.
+                            _tableCaption(),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -416,7 +388,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           children: [
                             // Table header
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                20,
+                                20,
+                                16,
+                              ),
                               child: Row(
                                 children: [
                                   const SizedBox(width: 3),
@@ -424,10 +401,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                   Expanded(
                                     child: Text(
                                       'Kategori',
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: AppColors.textTertiary,
-                                        letterSpacing: 0.5,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: AppColors.textTertiary,
+                                            letterSpacing: 0.5,
+                                          ),
                                     ),
                                   ),
                                   SizedBox(
@@ -435,10 +415,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
                                     child: Text(
                                       'Sisa',
                                       textAlign: TextAlign.right,
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: AppColors.textTertiary,
-                                        letterSpacing: 0.5,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: AppColors.textTertiary,
+                                            letterSpacing: 0.5,
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -447,109 +430,98 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
                             Divider(color: AppColors.divider, height: 1),
 
-                            // Category rows. Each is a tap target that narrows
-                            // the whole screen to that category, which is the
-                            // "kantong tertentu" answer without a second screen.
+                            // Category rows. Read-only: the table answers
+                            // "berapa di tiap kantong", not "pergi ke sana".
                             ...summary.categoryBalances.map((balance) {
                               final color = _hexToColor(balance.colorHex);
                               final dimmed = !balance.isActive;
-                              final selected = _category == balance.name;
                               return Column(
                                 children: [
-                                  InkWell(
-                                    onTap: () => _applyCategory(
-                                        selected ? null : balance.name),
-                                    child: Container(
-                                      color: selected
-                                          ? color.withValues(alpha: 0.10)
-                                          : Colors.transparent,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 16),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 3,
-                                            height: 32,
-                                            decoration: BoxDecoration(
+                                  Container(
+                                    color: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 16,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 3,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: dimmed
+                                                ? AppColors.dimmedIndicator
+                                                : color,
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                dimmed
+                                                    ? '${balance.name} (${balance.isArchived ? 'arsip' : 'nonaktif'})'
+                                                    : balance.name,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: dimmed
+                                                          ? AppColors
+                                                                .dimmedTitle
+                                                          : null,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                balance.isEmpty
+                                                    ? 'Belum ada pencatatan'
+                                                    : 'Rp ${_fmt(balance.income)} − Rp ${_fmt(balance.expense)}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: dimmed
+                                                          ? AppColors
+                                                                .dimmedSecondary
+                                                          : null,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text(
+                                            'Rp ${_fmt(balance.balance)}',
+                                            textAlign: TextAlign.right,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
                                               color: dimmed
-                                                  ? AppColors.dimmedIndicator
-                                                  : color,
-                                              borderRadius:
-                                                  BorderRadius.circular(2),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  dimmed
-                                                      ? '${balance.name} (${balance.isArchived ? 'arsip' : 'nonaktif'})'
-                                                      : balance.name,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: dimmed
-                                                            ? AppColors.dimmedTitle
-                                                            : null,
-                                                      ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  balance.isEmpty
-                                                      ? 'Belum ada pencatatan'
-                                                      : 'Rp ${_fmt(balance.income)} − Rp ${_fmt(balance.expense)}',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: dimmed
-                                                            ? AppColors.dimmedSecondary
-                                                            : null,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: 90,
-                                            child: Text(
-                                              'Rp ${_fmt(balance.balance)}',
-                                              textAlign: TextAlign.right,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: dimmed
-                                                    ? AppColors.dimmedSecondary
-                                                    : (balance.balance >= 0
+                                                  ? AppColors.dimmedSecondary
+                                                  : (balance.balance >= 0
                                                         ? AppColors.income
                                                         : AppColors.expense),
-                                                letterSpacing: -0.01,
-                                              ),
+                                              letterSpacing: -0.01,
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            selected
-                                                ? Icons.check_circle
-                                                : Icons.chevron_right,
-                                            size: 18,
-                                            color: selected
-                                                ? color
-                                                : AppColors.textTertiary,
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  if (balance !=
-                                      summary.categoryBalances.last)
-                                    Divider(color: AppColors.divider, height: 1),
+                                  if (balance != summary.categoryBalances.last)
+                                    Divider(
+                                      color: AppColors.divider,
+                                      height: 1,
+                                    ),
                                 ],
                               );
                             }),
@@ -559,7 +531,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ),
                   ),
                 ],
-
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
             );
@@ -569,174 +540,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  /// True once the user has narrowed something themselves.
-  ///
-  /// The default month view is not a selection, so it stays as totals plus the
-  /// per-category table. Opening Ringkasan with an uninvited transaction list
-  /// would bury the hero numbers this screen exists to show.
-  bool get _hasNarrowed => _category != null || _isRangeMode;
-
-  /// How many rows [summary] shows before handing over to Riwayat. A category
-  /// held open across all time can carry dozens of rows, and Ringkasan is a
-  /// summary screen, not a second Riwayat.
-  static const int _inlineRowLimit = 5;
-
-  /// The transactions behind the numbers above, on this screen.
-  ///
-  /// [visible] is already re-scaled by [applyLedgerFilter], so each amount here
-  /// is the same figure that produced the total and the row — no second
-  /// attribution rule that could drift from the first.
-  Widget _buildInlineList(
-    BuildContext context,
-    List<TransactionRecord> records,
-  ) {
-    final rows = [...records]
-      ..sort((a, b) => effectiveDate(b).compareTo(effectiveDate(a)));
-    final shown = rows.take(_inlineRowLimit).toList();
-    // The header already states how many rows and over which period. Repeating
-    // the count here would put the same sentence on screen twice, so this line
-    // carries only what the header cannot: that these amounts are the selected
-    // category's share of each receipt, not the receipt.
-    final note =
-        _category == null ? null : 'Nominal mengikuti bagian $_category saja.';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TRANSAKSI',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              if (note != null)
-                Text(note, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < shown.length; i++) ...[
-                  _buildInlineRow(context, shown[i]),
-                  if (i < shown.length - 1)
-                    const Divider(color: AppColors.divider, height: 1),
-                ],
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 6, 24, 0),
-          // A chevron after the words, not a receipt glyph before them. The
-          // question this answers is "where does this go", and a leading icon
-          // describes the contents instead — the trailing arrow is the one
-          // convention that says the action moves you somewhere. It stays a
-          // TextButton so the press still highlights on pointer-down.
-          child: TextButton(
-            onPressed: _openHistory,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(0, 36),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Lihat semua di Riwayat'),
-                SizedBox(width: 2),
-                Icon(Icons.chevron_right, size: 18),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// One transaction, read-only.
-  ///
-  /// Deliberately not tappable: a row that looks like it opens something but
-  /// does not is worse than one that plainly does not, and the options sheet
-  /// (edit, archive) lives with Riwayat's rows. The link below is the action.
-  Widget _buildInlineRow(BuildContext context, TransactionRecord record) {
-    final isExpense = record.type == TransactionType.expense;
-    final amount = record.totalAmount.round();
-    final title = isExpense
-        ? (record.merchantName.isEmpty ? record.items : record.merchantName)
-        : (record.items.isEmpty ? 'Pemasukan' : record.items);
-    final date =
-        DateTime.fromMillisecondsSinceEpoch(effectiveDate(record));
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 44,
-            child: Text(
-              DateFormat('d MMM', 'id_ID').format(date),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                  ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            '${isExpense ? '−' : '+'}Rp ${_fmt(amount)}',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.01,
-              color: isExpense ? AppColors.expense : AppColors.income,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// The month name, which doubles as the way into an arbitrary range.
-  ///
-  /// The label and the arrows are separate hit targets on purpose. They answer
-  /// two different questions — "some other stretch of dates" versus "one month
-  /// over" — so folding them into one tappable pill would either make the range
-  /// picker swallow month-stepping or hide it behind a long press.
-  ///
-  /// The label stays full white even when the arrows go dim. It is still live in
-  /// every mode, including SEMUA, where a month preset is one tap away inside
-  /// the sheet; dimming it along with the arrows would have been a lie about
-  /// what responds.
   Widget _buildPeriodLabel(String label) {
     // The underline says "this opens something"; the press has to say "now".
     // Under GestureDetector the label gave nothing back until the sheet was
@@ -959,9 +762,7 @@ class _RangeSheetState extends State<_RangeSheet> {
 
   Future<void> _pick({required bool isFrom}) async {
     final now = DateTime.now();
-    final anchor = isFrom
-        ? (_from ?? _to ?? now)
-        : (_to ?? _from ?? now);
+    final anchor = isFrom ? (_from ?? _to ?? now) : (_to ?? _from ?? now);
     final picked = await showDatePicker(
       context: context,
       initialDate: anchor,
@@ -1037,8 +838,8 @@ class _RangeSheetState extends State<_RangeSheet> {
                   selected: _isSemuaPreset(i)
                       ? widget.isAllTime
                       : _isPreset(LedgerRanges.preset(i)),
-                  onTap: () => Navigator.of(context)
-                      .pop(LedgerRanges.preset(i)),
+                  onTap: () =>
+                      Navigator.of(context).pop(LedgerRanges.preset(i)),
                 ),
             ],
           ),
@@ -1067,8 +868,8 @@ class _RangeSheetState extends State<_RangeSheet> {
             width: double.infinity,
             child: FilledButton(
               onPressed: ready
-                  ? () => Navigator.of(context)
-                      .pop(widget.onApply(_from!, _to!))
+                  ? () =>
+                        Navigator.of(context).pop(widget.onApply(_from!, _to!))
                   : null,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.green,
@@ -1114,19 +915,19 @@ class _DateField extends StatelessWidget {
             Text(
               label.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.textTertiary,
-                    letterSpacing: 1.2,
-                    fontSize: 10,
-                  ),
+                color: AppColors.textTertiary,
+                letterSpacing: 1.2,
+                fontSize: 10,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               value == null
                   ? 'Pilih tanggal'
                   : DateFormat('d MMM yyyy', 'id_ID').format(value!),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),

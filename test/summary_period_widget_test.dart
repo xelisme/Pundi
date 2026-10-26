@@ -71,14 +71,8 @@ void main() {
     // The real span, not a guess — one month with one record here.
     expect(find.text('1 bulan · 1 transaksi'), findsOneWidget);
 
-    // The per-category table follows the same period.
-    await tester.scrollUntilVisible(
-      find.textContaining('Akumulasi semua periode'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Akumulasi semua periode'), findsOneWidget);
+    // The parked PER KATEGORI table would show the same period, but it is
+    // switched off for now — the header and scope note carry the span.
   });
 
   testWidgets('switching back restores the month view',
@@ -225,132 +219,62 @@ void main() {
 
   // --- the transactions behind the figures, on the same screen -------------
 
-  /// A viewport tall enough to lay out the whole summary at once.
-  ///
-  /// The default 800x600 surface puts the inline rows below the fold, and
-  /// slivers do not build what is out of view — so "this row is not shown" and
-  /// "this row was never laid out" would be indistinguishable, and every
-  /// absence assertion below would pass for the wrong reason.
-  Future<void> pumpSummaryTall(WidgetTester tester) async {
+  testWidgets('no transaction list sneaks onto the screen, narrowed or not',
+      (WidgetTester tester) async {
+    repo.recordExpense(
+      merchantName: 'Toko A',
+      items: 'Barang',
+      amount: 100000,
+      chargedToCategory: 'Bebas',
+    );
+    // A viewport tall enough to lay out the whole summary at once, so an
+    // absence here cannot just mean "below the fold".
     tester.view.physicalSize = const Size(1000, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await pumpSummary(tester);
-  }
 
-  int dayMs(int day) =>
-      DateTime(DateTime.now().year, DateTime.now().month, day)
-          .millisecondsSinceEpoch;
-
-  testWidgets('picking a category puts its rows on this screen',
-      (WidgetTester tester) async {
-    repo.recordExpense(
-      merchantName: 'Toko A',
-      items: 'Barang',
-      amount: 100000,
-      chargedToCategory: 'Bebas',
-      receiptDate: dayMs(1),
-    );
-    repo.recordExpense(
-      merchantName: 'Toko B',
-      items: 'Barang',
-      amount: 200000,
-      chargedToCategory: 'Bebas',
-      receiptDate: dayMs(2),
-    );
-    repo.recordExpense(
-      merchantName: 'Toko C',
-      items: 'Barang',
-      amount: 300000,
-      chargedToCategory: 'Tabungan',
-      receiptDate: dayMs(3),
-    );
-    await pumpSummaryTall(tester);
-
-    // The default month is not a selection, so nothing opens uninvited.
+    // The inline TRANSAKSI list and its "Lihat semua di Riwayat" link are
+    // gone with the parked table. Ringkasan is totals and nothing else.
     expect(find.text('TRANSAKSI'), findsNothing);
-
-    await tester.tap(find.text('Bebas').first);
-    await tester.pumpAndSettle();
-
-    // One tap. The rows behind the figure are here, not behind a second one.
-    expect(find.text('TRANSAKSI'), findsOneWidget);
-    expect(find.text('Toko A'), findsOneWidget);
-    expect(find.text('Toko B'), findsOneWidget);
-    // The other pocket stays out of the narrowed view.
-    expect(find.text('Toko C'), findsNothing);
-  });
-
-  testWidgets('a long category stops at five rows and hands over',
-      (WidgetTester tester) async {
-    for (var day = 1; day <= 7; day++) {
-      repo.recordExpense(
-        merchantName: 'Toko $day',
-        items: 'Barang',
-        amount: 100000,
-        chargedToCategory: 'Bebas',
-        receiptDate: dayMs(day),
-      );
-    }
-    await pumpSummaryTall(tester);
-    await tester.tap(find.text('Bebas').first);
-    await tester.pumpAndSettle();
-
-    // Newest first: days 7..3 fit, days 2 and 1 do not.
-    expect(find.text('Toko 7'), findsOneWidget);
-    expect(find.text('Toko 3'), findsOneWidget);
-    expect(find.text('Toko 2'), findsNothing);
-    expect(find.text('Toko 1'), findsNothing);
-
-    // The caption still reports all seven, not the five on screen, and the link
-    // below is what makes reporting seven honest.
-    expect(find.textContaining('7 transaksi'), findsOneWidget);
-    expect(find.text('Lihat semua di Riwayat'), findsOneWidget);
-  });
-
-  testWidgets('a picked range surfaces the rows too',
-      (WidgetTester tester) async {
-    repo.recordExpense(
-      merchantName: 'Toko A',
-      items: 'Barang',
-      amount: 100000,
-      chargedToCategory: 'Bebas',
-    );
-    await pumpSummaryTall(tester);
-    expect(find.text('TRANSAKSI'), findsNothing);
+    expect(find.text('Lihat semua di Riwayat'), findsNothing);
+    expect(find.text('Toko A'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('periodLabel')));
     await tester.pumpAndSettle();
     // "7 hari", not "30 hari": a 30-day span ending on the 30th of a 30-day
-    // month is exactly that month, which snaps back to month mode and would make
-    // this test pass or fail depending on the day it runs.
+    // month is exactly that month, which snaps back to month mode and would
+    // make this test pass or fail depending on the day it runs.
     await tester.tap(find.text('7 hari'));
     await tester.pumpAndSettle();
 
-    // No category was chosen, yet the rows are here. Narrowing the period is the
-    // same request as narrowing the category, so it gets the same answer.
-    expect(find.text('TRANSAKSI'), findsOneWidget);
-    expect(find.text('Toko A'), findsOneWidget);
+    // Even narrowed to a range, the screen stays a summary. 'Lihat semua di
+    // Riwayat' existed only as that list's tail.
+    expect(find.text('TRANSAKSI'), findsNothing);
+    expect(find.text('Toko A'), findsNothing);
+    expect(find.text('Lihat semua di Riwayat'), findsNothing);
   });
 
-  testWidgets('inline amounts are the attributed share, not the whole receipt',
+  testWidgets('category rows are read-only, no narrowing on tap',
       (WidgetTester tester) async {
-    // One shared "Seluruhnya" income. The totals, the per-category table and
-    // these rows must all agree on what Bebas is worth; showing the full receipt
-    // here would contradict both.
     repo.recordIncome(amount: 300000, chargedToCategory: 'Seluruhnya');
-    await pumpSummaryTall(tester);
-    await tester.tap(find.text('Bebas').first);
-    await tester.pumpAndSettle();
 
-    expect(find.text('TRANSAKSI'), findsOneWidget);
-    // Bebas is 20% of the frozen 50/30/20 split, so 300.000 contributes 60.000
-    // to it. Printing the whole receipt would contradict both the total above
-    // and the per-category table, and would make the two look broken.
-    expect(find.text('+Rp 60.000'), findsOneWidget);
-    expect(find.text('+Rp 300.000'), findsNothing);
-    // The section says so out loud, since the row is otherwise surprising.
-    expect(find.text('Nominal mengikuti bagian Bebas saja.'), findsOneWidget);
+    // The table can sit below the fold; slivers do not build what is out of
+    // view, so lay everything out before aiming at a row.
+    tester.view.physicalSize = const Size(1000, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpSummary(tester);
+
+    // Nothing narrowed, and tapping a row changes nothing: the hero keeps
+    // counting the whole receipt and the caption stays period-shaped. The
+    // menyaring feature is gone; the table only states balances.
+    expect(find.text('Rp 300.000'), findsWidgets);
+    await tester.tap(find.text('Bebas'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Rp 300.000'), findsWidgets);
+    expect(find.textContaining('Kategori Bebas'), findsNothing);
   });
 }
