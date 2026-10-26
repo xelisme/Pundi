@@ -1,5 +1,14 @@
 # Pundi
 
+<div align="center">
+
+[![Tonton demosinya (52 detik)](docs/video/poster.jpg)](docs/video/pundi-demo.mp4)
+
+**▶️ [Tonton cara pakainya dulu — video demo 52 detik, ada narasi Bahasa Indonesia](docs/video/pundi-demo.mp4)**
+*(klik membuka pemutar video di GitHub; di HP langsung putar)*
+
+</div>
+
 Aplikasi alokasi budget berbasis persentase yang **100% offline** (Flutter).
 Catat pemasukan/pengeluaran, bagi otomatis ke "kantong" (kategori) sesuai
 persentase — tanpa login dan tanpa cloud.
